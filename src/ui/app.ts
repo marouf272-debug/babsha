@@ -4,7 +4,7 @@
 
 import { emptyMemory, type Ai, type AiMemory, type AiProfile } from '../ai';
 import type { Action, Card, Engine, GameEvent, GameState, Tile, TradeOffer } from '../engine';
-import { getLang, money, num, setLang, t } from '../i18n';
+import { getLang, money, num, setLang, t, tIn } from '../i18n';
 import { BoardScene, type SceneText } from '../scene/board';
 import type { SceneConfig } from '../scene/config';
 import { describeEvent, playerName, tileName } from './describe';
@@ -18,6 +18,8 @@ export interface AppOptions {
   profiles: Record<'easy' | 'medium' | 'hard', AiProfile>;
   sceneConfig: SceneConfig;
   test: boolean;
+  // Show the frame-rate readout during play (?fps=1).
+  fps: boolean;
 }
 
 interface TradeDraft {
@@ -41,6 +43,7 @@ export class App {
   private mode: 'BUILD' | 'SELL_BUILDING' | 'MORTGAGE' | 'REDEEM' | null = null;
   private draft: TradeDraft = emptyDraft();
   private log: string[] = [];
+  private lastRoll: number[] | null = null;
   private cards: Array<{ player: number; deck: 'lucky' | 'dohs'; cardId: string }> = [];
   private revealedTrade: string | null = null;
   private confirmBankrupt = false;
@@ -106,6 +109,7 @@ export class App {
       schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
     });
     this.log = [];
+    this.lastRoll = null;
     this.cards = [];
     this.panel = null;
     this.draft = emptyDraft();
@@ -131,7 +135,9 @@ export class App {
       this.els['sheet']!,
       this.els['overlay']!,
     ));
-    this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), this.o.test);
+    const fps = this.o.fps ? h('div', { class: 'fps' }) : null;
+    if (fps) root.append(fps);
+    this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), { instant: this.o.test, fps });
     new ResizeObserver(() => this.scene?.resize()).observe(canvas);
   }
 
@@ -140,6 +146,7 @@ export class App {
     return {
       font: FONT,
       tileName: (tile: Tile) => t(tile.nameKey),
+      signName: (tile: Tile) => tIn('bn', tile.nameKey),
       tileNote: (tile: Tile) => {
         if (tile.type === 'property' || tile.type === 'hub' || tile.type === 'utility') return money(this.o.engine.quote(this.session!.state, tile.id).price);
         if (tile.type === 'tax') return money(rules.config.tax[tile.tax!] ?? 0);
@@ -153,6 +160,7 @@ export class App {
       const line = describeEvent(e, state, this.o.engine.rules);
       if (line) this.log.push(line);
       if (e.type === 'cardDrawn') this.cards.push({ player: e.player, deck: e.deck, cardId: e.cardId });
+      if (e.type === 'diceRolled') this.lastRoll = e.dice;
       if (e.type === 'turnPassed' || e.type === 'tradeAccepted' || e.type === 'tradeRejected') this.panel = null;
     }
     this.log = this.log.slice(-40);
@@ -197,10 +205,17 @@ export class App {
     );
   }
 
+  // Player cards in two columns with the last roll between them (style guide 3).
   private renderPlayers(s: GameState): void {
     const session = this.session!;
-    this.els['players']!.replaceChildren(...s.players.map((p, i) => h('div', {
-      class: `player${i === s.turn.active ? ' active' : ''}${p.bankrupt ? ' out' : ''}`, 'data-testid': `player-${i}`,
+    const pips: Record<number, number[]> = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+    const die = (v: number) => h('div', { class: 'die', 'aria-label': num(v) }, ...Array.from({ length: 9 }, (_, k) => h('i', { class: pips[v]?.includes(k) ? 'on' : '' })));
+    const roll = h('div', { class: 'roll', 'data-testid': 'last-roll' }, ...(this.lastRoll ?? []).map(die));
+    const rows = Math.ceil(s.players.length / 2);
+    roll.style.gridRow = `1 / span ${rows}`;
+    this.els['players']!.replaceChildren(roll, ...s.players.map((p, i) => h('div', {
+      class: `player ${i % 2 === 0 ? 'left' : 'right'}${i === s.turn.active ? ' active' : ''}${p.bankrupt ? ' out' : ''}`, 'data-testid': `player-${i}`,
+      style: `grid-row:${Math.floor(i / 2) + 1}`,
     },
     h('span', { class: 'swatch', style: `background:${this.color(i)}` }),
     h('span', { class: 'pname' }, playerName(i)),
@@ -333,7 +348,7 @@ export class App {
     const sliderBtn = slider ? h('button', { 'data-testid': 'bid-custom', onclick: () => this.act({ type: 'BID', player: who, amount: Number(slider.value) }) }, t('auction.bid', { amount: money(Number(slider.value)) })) : null;
     if (slider && sliderBtn) slider.addEventListener('input', () => { sliderBtn.textContent = t('auction.bid', { amount: money(Number(slider.value)) }); });
     return h('div', { 'data-testid': 'auction' },
-      h('h3', {}, t('auction.title', { tile: tileName(this.o.engine.rules, a.tileId) })),
+      h('div', { class: 'band auction' }, t('auction.title', { tile: tileName(this.o.engine.rules, a.tileId) })),
       h('div', { class: 'status' }, a.highBidder === null ? t('auction.none') : t('auction.high', { amount: money(a.highBid!), name: playerName(a.highBidder) })),
       h('div', { class: 'who' }, t('auction.yourBid', { name: playerName(who) })),
       h('div', { class: 'row wrap' }, ...quick.map((v) => this.actButton(t('auction.bid', { amount: money(v) }), { type: 'BID', player: who, amount: v }, v === quick[0] ? 'primary' : ''))),
@@ -362,7 +377,7 @@ export class App {
         h('div', { class: 'row wrap' }, ...btns));
     });
     return h('div', { 'data-testid': 'manage' },
-      h('h3', {}, t('manage.title', { name: playerName(who) })),
+      closable ? h('div', { class: 'band manage' }, t('manage.title', { name: playerName(who) })) : h('h3', {}, t('manage.title', { name: playerName(who) })),
       rows.length ? h('div', { class: 'props' }, ...rows) : h('div', { class: 'note' }, t('manage.none')),
       closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.mode = null; this.render(); } }, t('action.close'))) : null,
     );
@@ -385,7 +400,7 @@ export class App {
       type: 'number', min: 0, max, step: 100, value: d[key], inputmode: 'numeric', 'data-testid': `trade-${key}`,
       oninput: (e) => { d[key] = Math.max(0, Math.floor(Number((e.target as HTMLInputElement).value) || 0)); d.error = false; },
     });
-    const body = h('div', { 'data-testid': 'trade' }, h('h3', {}, t('trade.title')), h('div', { class: 'field-label' }, t('trade.with')), pick);
+    const body = h('div', { 'data-testid': 'trade' }, h('div', { class: 'band trade' }, t('trade.title')), h('div', { class: 'field-label' }, t('trade.with')), pick);
     if (d.to === null) {
       body.append(h('div', { class: 'note' }, t('trade.choose')));
     } else {
@@ -421,7 +436,7 @@ export class App {
       return h('ul', {}, ...(items.length ? items : [t('trade.nothing')]).map((x) => h('li', {}, x)));
     };
     return h('div', { 'data-testid': 'trade-answer' },
-      h('h3', {}, t('trade.offerFrom', { name: playerName(o.from) })),
+      h('div', { class: 'band trade' }, t('trade.offerFrom', { name: playerName(o.from) })),
       h('div', { class: 'cols' },
         h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(o.from) })), list(o.giveTiles, o.giveCash)),
         h('div', {}, h('div', { class: 'field-label' }, t('trade.give')), list(o.getTiles, o.getCash)),
@@ -439,7 +454,7 @@ export class App {
     const to = debt.creditor.kind === 'player' ? t('debt.toPlayer', { name: playerName(debt.creditor.player) }) : debt.creditor.kind === 'bank' ? t('debt.toBank') : t('debt.toEach');
     const canPay = legal.some((a) => a.type === 'PAY_DEBT');
     return h('div', { 'data-testid': 'debt' },
-      h('h3', {}, t('debt.title', { name: playerName(who), amount: money(debt.amount) })),
+      h('div', { class: 'band debt' }, t('debt.title', { name: playerName(who), amount: money(debt.amount) })),
       h('div', { class: 'status' }, to),
       h('div', { class: 'note' }, t('debt.raise')),
       this.manageSheet(s, who, false),
@@ -469,6 +484,7 @@ export class App {
     const show = (el: HTMLElement) => { ov.hidden = false; ov.append(el); };
     if (s.turn.phase === 'GAME_OVER') {
       return show(h('div', { class: 'card-box', 'data-testid': 'game-over' },
+        h('div', { class: 'band plain' }, t('app.title')),
         h('h2', {}, t('over.title', { name: playerName(s.winner!) })),
         h('button', { class: 'primary big', 'data-testid': 'play-again', onclick: () => this.renderSetup() }, t('over.again'))));
     }
@@ -478,7 +494,7 @@ export class App {
       const dismiss = () => { this.cards.shift(); this.render(); };
       if (!session.isHuman(c.player)) setTimeout(() => { if (this.cards[0] === c) dismiss(); }, this.o.test ? 0 : 1600);
       return show(h('div', { class: 'card-box', 'data-testid': 'card' },
-        h('div', { class: 'deck' }, t(`deck.${c.deck}`)),
+        h('div', { class: `band ${c.deck}` }, t(`deck.${c.deck}`)),
         h('p', {}, this.cardText(card)),
         h('button', { class: 'primary', 'data-testid': 'card-ok', onclick: dismiss }, t('card.ok'))));
     }
@@ -486,6 +502,7 @@ export class App {
     if (who === null || !session.isHuman(who) || !this.needsHandoff(s, who)) return;
     if (s.turn.phase === 'START_TURN') {
       return show(h('div', { class: 'card-box', 'data-testid': 'handoff' },
+        h('div', { class: 'band plain' }, t('hud.turn', { name: playerName(who) })),
         h('span', { class: 'swatch big', style: `background:${this.color(who)}` }),
         h('h2', {}, t('handoff.pass', { name: playerName(who) })),
         this.actButton(t('handoff.reveal'), { type: 'BEGIN_TURN' }, 'primary big')));
