@@ -221,6 +221,11 @@
     "log.empty": "needs native review",
     "ev.tradeDetail": "needs native review",
     "ev.cardDrawnText": "needs native review",
-    "card.drawnBy": "needs native review"
+    "card.drawnBy": "needs native review",
+    "save.heading": "needs native review",
+    "save.summary": "needs native review",
+    "save.when": "needs native review",
+    "save.continue": "needs native review",
+    "save.resumed": "needs native review"
   }
 }

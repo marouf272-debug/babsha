@@ -4,6 +4,7 @@
 import type { Ai, AiMemory, AiProfile } from '../ai';
 import { emptyMemory } from '../ai';
 import type { Action, Engine, GameEvent, GameState, TradeOffer } from '../engine';
+import { SAVE_SCHEMA, type GameSettings, type SaveGame } from './save';
 
 export type SeatKind = 'human' | 'easy' | 'medium' | 'hard';
 
@@ -21,6 +22,10 @@ export interface SessionOptions {
   // How computer moves are delayed so people can follow them. Defaults to setTimeout.
   schedule?: (fn: () => void, ms: number) => void;
   aiDelayMs?: number;
+  // FR-19: continue a saved game instead of starting a new one.
+  resume?: Pick<SaveGame, 'state' | 'memories' | 'aiRng'>;
+  // FR-14: start cash from the game settings, when it differs from config.json.
+  startCash?: number;
 }
 
 export class Session {
@@ -32,6 +37,7 @@ export class Session {
   private readonly schedule: (fn: () => void, ms: number) => void;
   private readonly aiDelayMs: number;
   private readonly startEvents: GameEvent[];
+  private readonly seed: number;
   private readonly memories: AiMemory[];
   private aiRng: number;
   private pending = false;
@@ -44,11 +50,27 @@ export class Session {
     this.seats = [...o.seats];
     this.schedule = o.schedule ?? ((fn, ms) => void setTimeout(fn, ms));
     this.aiDelayMs = o.aiDelayMs ?? 700;
-    const created = o.engine.newGame({ playerIds: o.seats.map((_, i) => `p${i}`), seed: o.seed });
+    this.seed = o.seed;
+    if (o.resume) {
+      this.state = structuredClone(o.resume.state);
+      this.startEvents = [];
+      this.memories = structuredClone(o.resume.memories);
+      this.aiRng = o.resume.aiRng;
+      return;
+    }
+    const created = o.engine.newGame({ playerIds: o.seats.map((_, i) => `p${i}`), seed: o.seed, startCash: o.startCash });
     this.state = created.state;
     this.startEvents = created.events;
     this.memories = o.seats.map(() => emptyMemory());
     this.aiRng = (o.seed * 2654435761) | 0; // D-55: computer randomness apart from the dice
+  }
+
+  // FR-19: everything needed to continue this game later, exactly where it is.
+  snapshot(settings: GameSettings, events: GameEvent[]): SaveGame {
+    return {
+      schema: SAVE_SCHEMA, savedAt: Date.now(), seed: this.seed, seats: [...this.seats], settings: { ...settings },
+      state: structuredClone(this.state), memories: structuredClone(this.memories), aiRng: this.aiRng, events: [...events],
+    };
   }
 
   subscribe(fn: (u: Update) => void): () => void {

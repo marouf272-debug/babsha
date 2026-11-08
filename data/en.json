@@ -219,5 +219,10 @@
   "log.empty": "Nothing has happened yet",
   "ev.tradeDetail": "{name} gave {give}; {other} gave {get}",
   "ev.cardDrawnText": "{name} drew a {deck} card: {text}",
-  "card.drawnBy": "Drawn by {name}"
+  "card.drawnBy": "Drawn by {name}",
+  "save.heading": "Saved game",
+  "save.summary": "{players} players ({humans} on this phone), turn {turn}",
+  "save.when": "Saved {when}",
+  "save.continue": "Continue game",
+  "save.resumed": "Game resumed"
 }

@@ -14,6 +14,7 @@ import { cardArt } from './cardArt';
 import { icon } from './icons';
 import { h } from './dom';
 import { Session, type SeatKind } from './session';
+import { clearSave, deviceStorage, loadSave, writeSave, type GameSettings, type SaveGame } from './save';
 
 export interface AppOptions {
   root: HTMLElement;
@@ -54,6 +55,9 @@ export class App {
   private cards: Array<{ player: number; deck: 'lucky' | 'dohs'; cardId: string }> = [];
   private revealedTrade: string | null = null;
   private confirmBankrupt = false;
+  // FR-19: after a resume with several people on one phone, cover the board until someone taps.
+  private resumeCover = false;
+  private settings: GameSettings = { timer: false };
   private playing: Promise<void> = Promise.resolve();
   private readonly els: Record<string, HTMLElement> = {};
   private suggestMemory: AiMemory = emptyMemory();
@@ -111,8 +115,10 @@ export class App {
     for (let n = this.o.engine.rules.config.players.min; n <= this.o.engine.rules.config.players.max; n++) {
       counts.append(h('button', { class: n === this.setup.count ? 'chip on' : 'chip', 'data-testid': `count-${n}`, onclick: () => { this.setup.count = n; this.renderSetup(); } }, num(n)));
     }
+    const saved = loadSave(deviceStorage(), this.o.engine);
     root.append(h('div', { class: 'setup' },
       h('div', { class: 'setup-top' }, h('h1', {}, t('app.title')), this.langButton()),
+      saved ? this.continueCard(saved) : null,
       h('h2', {}, t('setup.heading')),
       h('div', { class: 'field-label' }, t('setup.players')),
       counts,
@@ -122,24 +128,53 @@ export class App {
     document.title = t('app.title');
   }
 
+  // FR-19: the saved game, with who plays and how far it got.
+  private continueCard(save: SaveGame): HTMLElement {
+    const humans = save.seats.filter((k) => k === 'human').length;
+    const when = new Intl.DateTimeFormat(getLang() === 'bn' ? 'bn-BD' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(save.savedAt);
+    return h('div', { class: 'continue', 'data-testid': 'saved-game' },
+      h('h2', {}, t('save.heading')),
+      h('p', {}, t('save.summary', { players: num(save.seats.length), humans: num(humans), turn: num(save.state.turnCount + 1) })),
+      h('p', { class: 'note' }, t('save.when', { when })),
+      h('button', { class: 'primary big', 'data-testid': 'continue', onclick: () => this.resume(save) }, t('save.continue')));
+  }
+
+  private resume(save: SaveGame): void {
+    this.settings = { ...save.settings };
+    this.begin(new Session({
+      engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats: save.seats, seed: save.seed, resume: save,
+      aiDelayMs: this.o.test ? 0 : 650,
+      schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
+    }), save.events);
+    const s = this.session!;
+    const who = s.actor();
+    this.resumeCover = s.humanCount >= 2 && who !== null && s.isHuman(who) && s.state.turn.phase !== 'START_TURN';
+    this.render();
+  }
+
   private start(): void {
     const seats = this.setup.seats.slice(0, this.setup.count);
     const seed = this.o.test ? 4242 : (Date.now() & 0x7fffffff);
-    this.session = new Session({
+    this.begin(new Session({
       engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats, seed,
       aiDelayMs: this.o.test ? 0 : 650,
       // Computer moves wait for the board animation to finish.
       schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
-    });
-    this.events = [];
+    }), []);
+  }
+
+  private begin(session: Session, events: GameEvent[]): void {
+    this.session = session;
+    this.events = [...events];
+    this.resumeCover = false;
     this.info = null;
     this.lastRoll = null;
     this.cards = [];
     this.panel = null;
     this.draft = emptyDraft();
     this.buildGameShell();
-    this.session.subscribe((u) => this.onUpdate(u.state, u.events));
-    this.session.start();
+    session.subscribe((u) => this.onUpdate(u.state, u.events));
+    session.start();
   }
 
   // ---------- game shell ----------
@@ -209,6 +244,9 @@ export class App {
     }
     this.events = this.events.slice(-600);
     this.confirmBankrupt = false;
+    // FR-19: save after every change; a finished game is not kept.
+    if (state.turn.phase === 'GAME_OVER') clearSave(deviceStorage());
+    else if (this.session) writeSave(deviceStorage(), this.session.snapshot(this.settings, this.events));
     // Computer card draws are shown briefly; a human dismisses their own card.
     const scene = this.scene;
     this.playing = this.playing.then(() => {
@@ -579,7 +617,7 @@ export class App {
   private needsHandoff(s: GameState, who: number): boolean {
     const session = this.session!;
     if (session.humanCount < 2) return false;
-    if (s.turn.phase === 'START_TURN') return true;
+    if (s.turn.phase === 'START_TURN' || this.resumeCover) return true;
     return !!s.trade && s.trade.to === who && this.revealedTrade !== tradeKey(s);
   }
 
@@ -609,6 +647,13 @@ export class App {
     }
     const who = session.actor();
     if (who === null || !session.isHuman(who) || !this.needsHandoff(s, who)) return;
+    if (this.resumeCover) {
+      return show(h('div', { class: 'card-box', 'data-testid': 'resume-cover' },
+        h('div', { class: 'band plain' }, t('save.resumed')),
+        h('span', { class: 'swatch big', style: `background:${this.color(who)}` }),
+        h('h2', {}, t('handoff.pass', { name: playerName(who) })),
+        h('button', { class: 'primary big', 'data-testid': 'resume-go', onclick: () => { this.resumeCover = false; this.render(); } }, t('handoff.reveal'))));
+    }
     if (s.turn.phase === 'START_TURN') {
       return show(h('div', { class: 'card-box', 'data-testid': 'handoff' },
         h('div', { class: 'band plain' }, t('hud.turn', { name: playerName(who) })),

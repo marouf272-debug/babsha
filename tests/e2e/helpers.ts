@@ -107,7 +107,7 @@ export async function runSteps(page: Page, max: number): Promise<{ status: 'over
     const app = (window as unknown as { __babsha: { app: { suggest(): A | null } } }).__babsha.app;
     for (let i = 0; i < limit; i++) {
       if (shown('game-over')) return { status: 'over' as const, steps: i };
-      if (press('card-ok') || press('reveal-trade')) continue;
+      if (press('card-ok') || press('reveal-trade') || press('resume-go')) continue;
       const a = app.suggest();
       if (!a) return { status: 'stuck' as const, steps: i, detail: 'no suggestion' };
       const opener: Record<string, string> = { BUILD: 'act-build', SELL_BUILDING: 'act-sell', MORTGAGE: 'act-mortgage', REDEEM: 'act-redeem' };

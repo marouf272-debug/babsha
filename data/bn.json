@@ -219,5 +219,10 @@
   "log.empty": "এখনো কিছু হয়নি",
   "ev.tradeDetail": "{name} দিলেন {give}; {other} দিলেন {get}",
   "ev.cardDrawnText": "{name} একটি {deck} কার্ড তুললেন: {text}",
-  "card.drawnBy": "তুলেছেন {name}"
+  "card.drawnBy": "তুলেছেন {name}",
+  "save.heading": "সংরক্ষিত খেলা",
+  "save.summary": "{players} জন খেলোয়াড় (এই ফোনে {humans} জন), {turn} নম্বর পালা",
+  "save.when": "সংরক্ষণ: {when}",
+  "save.continue": "খেলা চালিয়ে যান",
+  "save.resumed": "খেলা আবার শুরু হলো"
 }
