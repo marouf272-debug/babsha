@@ -1,0 +1,89 @@
+{
+  "status": "S3 draft. Builder-chosen numbers, tuned by simulation. Not rules: see docs/AI.md.",
+  "profiles": {
+    "easy": {
+      "noise": 0.25,
+      "reserve": {
+        "base": 2500,
+        "threatShare": 0
+      },
+      "buyThreshold": 0.45,
+      "bidFactor": 0.8,
+      "setBonus": {
+        "complete": 0.6,
+        "extend": 0.2,
+        "block": 0.1
+      },
+      "useLandingFrequency": false,
+      "redeemSpareFactor": 3,
+      "trade": {
+        "propose": true,
+        "offerPremium": 1.6,
+        "acceptMargin": 0,
+        "setPremium": 1.2,
+        "consolidatePremium": 0
+      },
+      "jam": {
+        "stayLate": false,
+        "payFineEarly": false
+      },
+      "declineToAuction": false
+    },
+    "medium": {
+      "noise": 0,
+      "reserve": {
+        "base": 800,
+        "threatShare": 0.2
+      },
+      "buyThreshold": 0.5,
+      "bidFactor": 1.0,
+      "setBonus": {
+        "complete": 1.5,
+        "extend": 0.5,
+        "block": 0.4
+      },
+      "useLandingFrequency": false,
+      "redeemSpareFactor": 2,
+      "trade": {
+        "propose": true,
+        "offerPremium": 2.0,
+        "acceptMargin": 0.1,
+        "setPremium": 1.0,
+        "consolidatePremium": 0
+      },
+      "jam": {
+        "stayLate": false,
+        "payFineEarly": true
+      },
+      "declineToAuction": false
+    },
+    "hard": {
+      "noise": 0,
+      "reserve": {
+        "base": 500,
+        "threatShare": 0.3
+      },
+      "buyThreshold": 0.35,
+      "bidFactor": 1.0,
+      "setBonus": {
+        "complete": 2.0,
+        "extend": 0.7,
+        "block": 0.8
+      },
+      "useLandingFrequency": true,
+      "redeemSpareFactor": 2,
+      "trade": {
+        "propose": true,
+        "offerPremium": 3.0,
+        "acceptMargin": 0.15,
+        "setPremium": 1.5,
+        "consolidatePremium": 0
+      },
+      "jam": {
+        "stayLate": true,
+        "payFineEarly": true
+      },
+      "declineToAuction": true
+    }
+  }
+}

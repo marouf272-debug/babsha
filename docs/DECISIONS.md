@@ -58,6 +58,11 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-50 | 2026-11-08 | Builder reading: properties returned to auction by a bankruptcy are auctioned one at a time in board order before play continues. A forced Jam fine that cannot be paid is settled in DEBT first, then the player moves. | Builder | |
 | D-51 | 2026-11-08 | Builder reading: trades cover properties and cash only, not held Jam cards. The proposer offers one trade to one player, who accepts or rejects it. | Builder | FR-08 says "properties and cash". |
 | D-52 | 2026-11-08 | Builder reading of D-34: when the timer runs out on a waiting trade, the trade is rejected. There is no timer before the roll, matching D-34's list. | Builder | Rejecting is the passive choice. Owner may overrule. |
+| D-53 | 2026-11-08 | Sprint S2 approved. | Owner | Answered in chat. |
+| D-54 | 2026-11-08 | Computer players use utility scoring as described in docs/AI.md, with Easy, Medium and Hard numbers in data/ai-profiles.json. They only choose among the engine's legal actions. | Builder | Plan 3.1 and FR-13. Profile numbers are tuning, not rules. |
+| D-55 | 2026-11-08 | AI randomness uses its own seeded generator, separate from the game's dice, so a game still replays exactly from its seed. | Builder | Plan 3.1. |
+| D-56 | 2026-11-08 | Computer players do not trade while in DEBT and only mortgage to settle a debt. | Builder | Keeps S3 AI simple. FR-13 asks that they mortgage and trade, which they do. Can be extended. |
+| D-57 | 2026-11-08 | Difficulty order is checked by simulation: Hard must beat Easy in more than 60 percent of head-to-head games (a test in npm test). | Builder | FR-13 names three levels; the test stops a later change from silently inverting them. |
 
 ## Open questions
 
