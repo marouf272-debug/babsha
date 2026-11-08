@@ -1,0 +1,33 @@
+{
+  "status": "S4 greybox. Flat functional colors only (CLAUDE.md art rules); the visual style comes in S5.",
+  "camera": {
+    "active": "tabletop",
+    "presets": {
+      "tabletop": { "azimuthDeg": 0, "elevationDeg": 58, "zoom": 1.0 },
+      "isometric": { "azimuthDeg": 45, "elevationDeg": 35.264, "zoom": 1.0 }
+    },
+    "marginTiles": 0.25
+  },
+  "board": { "tileWidth": 1, "tileDepth": 1.6, "tileHeight": 0.12, "baseHeight": 0.2 },
+  "render": { "maxPixelRatio": 1.5 },
+  "animation": { "hopMs": 130, "diceMs": 450 },
+  "colors": {
+    "background": "#d8d8d4",
+    "board": "#b9b9b4",
+    "tile": "#efefeb",
+    "tileText": "#202020",
+    "house": "#f8f8f8",
+    "hotel": "#505050",
+    "dice": "#fafafa",
+    "pip": "#202020",
+    "groups": {
+      "brown": "#8b5a2b", "light_blue": "#8fcbef", "pink": "#e58fb5", "orange": "#f29b38",
+      "red": "#d9413a", "yellow": "#f2d230", "green": "#3f9e4d", "dark_blue": "#2b4b9b"
+    },
+    "players": ["#d93a3a", "#3a6fd9", "#34a853", "#e6c229", "#8e4ad9", "#2bb5c7"]
+  },
+  "groupSymbols": {
+    "brown": "●", "light_blue": "▲", "pink": "■", "orange": "◆",
+    "red": "★", "yellow": "✚", "green": "♥", "dark_blue": "⬟"
+  }
+}
