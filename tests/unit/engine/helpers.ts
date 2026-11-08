@@ -59,3 +59,16 @@ export function skipBuy(state: GameState): GameState {
   for (const p of [...(s.auction?.inPlayers ?? [])]) s = engine.step(s, { type: 'FOLD', player: p }).state;
   return s;
 }
+
+// A started game with the active player in MANAGE and the given tiles owned by them.
+export function managing(owned: Record<string, { houses?: number; mortgaged?: boolean; owner?: number }> = {}, players = 2, seed = 41): GameState {
+  return edit(ready(newGame(players, seed).state), (s) => {
+    s.turn.phase = 'MANAGE';
+    for (const [id, o] of Object.entries(owned)) {
+      s.properties[id] = { owner: o.owner ?? s.turn.active, houses: o.houses ?? 0, mortgaged: o.mortgaged ?? false };
+    }
+  });
+}
+
+export const legalOf = (state: GameState, type: Action['type']) =>
+  engine.legalActions(state).filter((a) => a.type === type).map((a) => ('tileId' in a ? a.tileId : a.type));

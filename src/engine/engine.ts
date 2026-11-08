@@ -114,10 +114,50 @@ export function createEngine(rules: Rules): Engine {
         return actions;
       }
       case 'MANAGE':
-        return [{ type: 'END_TURN', player: me }];
+        return [...manageActions(state, me, 'MANAGE'), { type: 'END_TURN', player: me }];
       default:
         return [];
     }
+  }
+
+  // ---------- building (FR-06) ----------
+
+  const setOf = (t: Tile) => rules.groupMembers[t.group!]!;
+
+  function buildCost(t: Tile, houses: number): number {
+    return houses < config.building.maxHouses ? t.houseCost! : t.hotelCost!; // D-29
+  }
+
+  // R-37, R-38, R-41, D-29, D-31: full set owned, nothing mortgaged in it, even rule, cash for it.
+  function canBuild(state: GameState, pl: number, t: Tile): boolean {
+    if (t.type !== 'property') return false;
+    const members = setOf(t);
+    const props = members.map((id) => state.properties[id]);
+    if (props.some((x) => !x || x.owner !== pl || x.mortgaged)) return false;
+    const mine = state.properties[t.id]!;
+    if (mine.houses >= hotelLevel) return false;
+    if (mine.houses !== Math.min(...props.map((x) => x!.houses))) return false;
+    return state.players[pl]!.cash >= buildCost(t, mine.houses);
+  }
+
+  // R-39: sell back following the even rule in reverse.
+  function canSell(state: GameState, pl: number, t: Tile): boolean {
+    if (t.type !== 'property') return false;
+    const mine = state.properties[t.id];
+    if (!mine || mine.owner !== pl || mine.houses === 0) return false;
+    return mine.houses === Math.max(...setOf(t).map((id) => state.properties[id]?.houses ?? 0));
+  }
+
+  // D-46: management actions for the active player in MANAGE, or the debtor in DEBT (D-39).
+  function manageActions(state: GameState, pl: number, phase: 'MANAGE' | 'DEBT'): Action[] {
+    const actions: Action[] = [];
+    for (const t of tiles) {
+      if (phase === 'MANAGE' && canBuild(state, pl, t)) actions.push({ type: 'BUILD', player: pl, tileId: t.id });
+    }
+    for (const t of tiles) {
+      if (canSell(state, pl, t)) actions.push({ type: 'SELL_BUILDING', player: pl, tileId: t.id });
+    }
+    return actions;
   }
 
   // D-43: first bid may be the opening bid (0), each later bid at least the minimum raise more.
@@ -228,6 +268,22 @@ export function createEngine(rules: Rules): Engine {
         break;
       }
 
+      case 'BUILD': {
+        const t = tile(action.tileId);
+        const prop = state.properties[t.id]!;
+        const cost = buildCost(t, prop.houses);
+        state.players[actor(state)]!.cash -= cost;
+        prop.houses += 1;
+        events.push({ type: 'buildingBought', player: actor(state), tileId: t.id, cost, houses: prop.houses });
+        break;
+      }
+
+      case 'SELL_BUILDING': {
+        const pl = actor(state);
+        sellBuilding(state, events, pl, action.tileId);
+        break;
+      }
+
       case 'END_TURN':
         endTurn(state, events);
         break;
@@ -237,6 +293,21 @@ export function createEngine(rules: Rules): Engine {
     }
     settle(state, events);
     return { state, events };
+  }
+
+  // Who may manage right now: the active player in MANAGE, the debtor in DEBT.
+  function actor(state: GameState): number {
+    return state.turn.phase === 'DEBT' ? state.debts[0]!.debtor : state.turn.active;
+  }
+
+  // R-39, D-29: refund 50 percent; a hotel goes back to 4 houses.
+  function sellBuilding(state: GameState, events: GameEvent[], pl: number, tileId: string): void {
+    const t = tile(tileId);
+    const prop = state.properties[tileId]!;
+    const refund = buildCost(t, prop.houses - 1) * config.building.sellBackRate;
+    prop.houses -= 1;
+    state.players[pl]!.cash += refund;
+    events.push({ type: 'buildingSold', player: pl, tileId, refund, houses: prop.houses });
   }
 
   // Decides what happens next after any action: debts first, then auctions, then the normal turn.

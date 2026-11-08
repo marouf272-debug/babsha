@@ -31,6 +31,8 @@ function bankFlow(events: GameEvent[]): number {
     else if (e.type === 'taxPaid') flow -= e.amount;
     else if (e.type === 'jamFinePaid') flow -= e.amount;
     else if (e.type === 'auctionWon') flow -= e.price;
+    else if (e.type === 'buildingBought') flow -= e.cost;
+    else if (e.type === 'buildingSold') flow += e.refund;
   }
   return flow;
 }
@@ -52,9 +54,16 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
     const t = rules.tiles.find((x) => x.id === id);
     if (!t || !['property', 'hub', 'utility'].includes(t.type)) v.push(`owned tile ${id} is not buyable`);
     if (prop.owner < 0 || prop.owner >= n) v.push(`tile ${id} owner ${prop.owner} out of range`);
-    // S1: nothing can build or mortgage yet.
-    if (prop.houses !== 0) v.push(`tile ${id} has buildings in S1`);
-    if (prop.mortgaged) v.push(`tile ${id} is mortgaged in S1`);
+    if (prop.houses > 0 && t?.type !== 'property') v.push(`tile ${id} has buildings but is not a property`);
+  }
+  // Plan 4.3 S2 invariants: buildings only on a full set with nothing mortgaged, built evenly.
+  for (const members of Object.values(rules.groupMembers)) {
+    const props = members.map((id) => after.properties[id]);
+    const houses = props.map((x) => x?.houses ?? 0);
+    if (Math.max(...houses) === 0) continue;
+    if (props.some((x) => !x || x.owner !== props[0]!.owner)) v.push(`buildings on an incomplete set ${members.join(',')}`);
+    if (props.some((x) => x?.mortgaged)) v.push(`buildings on a mortgaged set ${members.join(',')}`);
+    if (Math.max(...houses) - Math.min(...houses) > 1) v.push(`uneven buildings on ${members.join(',')}: ${houses.join(',')}`);
   }
   for (const [id, prop] of Object.entries(before.properties)) {
     if (after.properties[id]?.owner !== prop.owner) v.push(`tile ${id} changed owner without a trade`);
@@ -80,7 +89,9 @@ export function simulate(engine: Engine, opts: SimOptions): SimReport {
       if (legal.length === 0) break;
       const [r, next] = nextFloat(agentRng);
       agentRng = next;
-      const action = legal[Math.floor(r * legal.length)]!;
+      // Random agent. In MANAGE it ends the turn half the time, so it cannot loop build and sell forever.
+      const end = legal.find((x) => x.type === 'END_TURN');
+      const action = end && r < 0.5 ? end : legal[Math.floor(r * legal.length)]!;
       const result = engine.step(state, action);
       for (const e of result.events) report.events[e.type] = (report.events[e.type] ?? 0) + 1;
       const v = checkInvariants(engine, state, result.state, result.events);
