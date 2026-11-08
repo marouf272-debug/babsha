@@ -2,7 +2,7 @@
 // Rule IDs (R-xx, D-xx) refer to docs/RULES.md and docs/DECISIONS.md.
 
 import { rollDice } from './rng';
-import type { Action, CashTarget, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile } from './types';
+import type { Action, CashTarget, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile, TradeOffer } from './types';
 
 export class IllegalActionError extends Error {}
 
@@ -12,6 +12,8 @@ export interface Engine {
   legalActions(state: GameState): Action[];
   step(state: GameState, action: Action): StepResult;
   rentFor(state: GameState, tileId: string, diceTotal: number): number;
+  // Why a trade offer from the current manager would be refused, or null if it is valid.
+  tradeProblem(state: GameState, offer: Omit<TradeOffer, 'from'>): string | null;
 }
 
 export function createEngine(rules: Rules): Engine {
@@ -85,6 +87,10 @@ export function createEngine(rules: Rules): Engine {
   // ---------- legality ----------
 
   function legalActions(state: GameState): Action[] {
+    if (state.trade) {
+      const to = state.trade.to; // FR-08: only the other player may answer a waiting offer
+      return [{ type: 'ACCEPT_TRADE', player: to }, { type: 'REJECT_TRADE', player: to }];
+    }
     const me = state.turn.active;
     const p = state.players[me]!;
     switch (state.turn.phase) {
@@ -175,6 +181,33 @@ export function createEngine(rules: Rules): Engine {
     return !!mine && mine.owner === pl && mine.mortgaged && state.players[pl]!.cash >= redeemCost(t);
   }
 
+  // ---------- trade (FR-08) ----------
+
+  // R-45, R-46, D-44, D-46, D-51.
+  function tradeProblem(state: GameState, offer: Omit<TradeOffer, 'from'>): string | null {
+    const phase = state.turn.phase;
+    if ((phase !== 'MANAGE' && phase !== 'DEBT') || state.trade) return 'Trading is not now';
+    const from = actor(state);
+    const to = offer.to;
+    if (!Number.isInteger(to) || to < 0 || to >= state.players.length || to === from || state.players[to]!.bankrupt) {
+      return 'A trade must be with another player still in the game';
+    }
+    if (offer.giveTiles.length + offer.getTiles.length === 0 && offer.giveCash === 0 && offer.getCash === 0) return 'The offer is empty';
+    for (const [cash, who] of [[offer.giveCash, from], [offer.getCash, to]] as const) {
+      if (!Number.isInteger(cash) || cash < 0 || cash > state.players[who]!.cash) return 'The cash in the offer is not available';
+    }
+    const all = [...offer.giveTiles, ...offer.getTiles];
+    if (new Set(all).size !== all.length) return 'A tile appears twice';
+    for (const [ids, who] of [[offer.giveTiles, from], [offer.getTiles, to]] as const) {
+      for (const id of ids) {
+        const t = tileById.get(id);
+        if (!t || state.properties[id]?.owner !== who) return `Player ${who} does not own ${id}`;
+        if (t.type === 'property' && setOf(t).some((m) => (state.properties[m]?.houses ?? 0) > 0)) return `${id} is in a set with buildings`;
+      }
+    }
+    return null;
+  }
+
   // D-46: management actions for the active player in MANAGE, or the debtor in DEBT (D-39).
   function manageActions(state: GameState, pl: number, phase: 'MANAGE' | 'DEBT'): Action[] {
     const actions: Action[] = [];
@@ -202,6 +235,10 @@ export function createEngine(rules: Rules): Engine {
   // Matches a requested action against the legal list: same type, same actor, same target.
   // A bid may be any whole amount from the minimum up to the bidder's cash (D-33).
   function isLegal(state: GameState, action: Action): boolean {
+    if (action.type === 'PROPOSE_TRADE') {
+      if (action.player !== undefined && action.player !== actor(state)) return false;
+      return tradeProblem(state, action.offer) === null;
+    }
     if (action.type === 'BID') {
       if (!Number.isInteger(action.amount) || action.amount < minBid(state) || action.amount > state.players[action.player]!.cash) return false;
     }
@@ -336,6 +373,31 @@ export function createEngine(rules: Rules): Engine {
         events.push({ type: 'redeemed', player: pl, tileId: t.id, cost });
         break;
       }
+
+      case 'PROPOSE_TRADE': {
+        const offer: TradeOffer = { from: actor(state), ...action.offer, giveTiles: [...action.offer.giveTiles], getTiles: [...action.offer.getTiles] };
+        state.trade = offer;
+        events.push({ type: 'tradeProposed', offer });
+        break;
+      }
+
+      case 'ACCEPT_TRADE': {
+        const o = state.trade!;
+        const a = state.players[o.from]!;
+        const b = state.players[o.to]!;
+        a.cash += o.getCash - o.giveCash;
+        b.cash += o.giveCash - o.getCash;
+        for (const id of o.giveTiles) state.properties[id]!.owner = o.to; // mortgages stay (D-37)
+        for (const id of o.getTiles) state.properties[id]!.owner = o.from;
+        events.push({ type: 'tradeAccepted', offer: o });
+        state.trade = null;
+        break;
+      }
+
+      case 'REJECT_TRADE':
+        events.push({ type: 'tradeRejected', offer: state.trade! });
+        state.trade = null;
+        break;
 
       case 'PAY_DEBT': {
         const debt = state.debts.shift()!;
@@ -665,5 +727,5 @@ export function createEngine(rules: Rules): Engine {
     events.push({ type: 'turnPassed', from: me, to: next });
   }
 
-  return { rules, newGame, legalActions, step, rentFor };
+  return { rules, newGame, legalActions, step, rentFor, tradeProblem };
 }

@@ -1,7 +1,7 @@
 // Headless simulation harness (plan 3.4 /sim). Plays random legal actions and checks invariants
 // after every step. S1: random agents only; AI profiles arrive in S3.
 
-import { nextFloat, type Action, type Engine, type GameEvent, type GameState } from '../src/engine';
+import { nextFloat, type Action, type Engine, type GameEvent, type GameState, type TradeOffer } from '../src/engine';
 
 export interface SimOptions {
   games: number;
@@ -87,10 +87,11 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
     if (props.some((x) => x?.mortgaged)) v.push(`buildings on a mortgaged set ${members.join(',')}`);
     if (Math.max(...houses) - Math.min(...houses) > 1) v.push(`uneven buildings on ${members.join(',')}: ${houses.join(',')}`);
   }
-  const moved = new Set(events.flatMap((e) => (e.type === 'bankrupt' ? ['bankrupt'] : [])));
+  const transferred = events.some((e) => e.type === 'bankrupt' || e.type === 'tradeAccepted');
   for (const [id, prop] of Object.entries(before.properties)) {
-    if (after.properties[id]?.owner !== prop.owner && !moved.has('bankrupt')) v.push(`tile ${id} changed owner without a trade or bankruptcy`);
+    if (after.properties[id]?.owner !== prop.owner && !transferred) v.push(`tile ${id} changed owner without a trade or bankruptcy`);
   }
+  if (after.trade && after.turn.phase !== 'MANAGE' && after.turn.phase !== 'DEBT') v.push(`trade waiting in ${after.turn.phase}`);
   if (after.turn.phase === 'BUY_DECISION') {
     const id = after.turn.pendingTile;
     if (!id || after.properties[id]) v.push(`buy decision on ${id} which is missing or owned`);
@@ -117,6 +118,24 @@ function pickWeighted(legal: Action[], r: number): Action {
   return legal[legal.length - 1]!;
 }
 
+// Builds a random trade from the current manager to another player, or null if none is valid.
+function randomOffer(engine: Engine, state: GameState, r: number): Omit<TradeOffer, 'from'> | null {
+  const from = state.turn.phase === 'DEBT' ? state.debts[0]!.debtor : state.turn.active;
+  const others = state.players.map((_, i) => i).filter((i) => i !== from && !state.players[i]!.bankrupt);
+  if (others.length === 0) return null;
+  const to = others[Math.floor(r * others.length)]!;
+  const owned = (who: number) => Object.entries(state.properties).filter(([, p]) => p.owner === who).map(([id]) => id);
+  const pick = (ids: string[], k: number) => (ids.length ? [ids[Math.floor(k * ids.length) % ids.length]!] : []);
+  const offer = {
+    to,
+    giveTiles: pick(owned(from), (r * 7) % 1),
+    getTiles: pick(owned(to), (r * 13) % 1),
+    giveCash: Math.floor(((r * 17) % 1) * Math.min(500, state.players[from]!.cash) / 10) * 10,
+    getCash: Math.floor(((r * 19) % 1) * Math.min(500, state.players[to]!.cash) / 10) * 10,
+  };
+  return engine.tradeProblem(state, offer) === null ? offer : null;
+}
+
 export function simulate(engine: Engine, opts: SimOptions): SimReport {
   const report: SimReport = { games: 0, actions: 0, turns: 0, violations: [], events: {}, propertiesOwnedAtEnd: 0, gamesWon: 0, finalStates: [] };
   let agentRng = opts.seed ^ 0x5bd1e995;
@@ -129,7 +148,14 @@ export function simulate(engine: Engine, opts: SimOptions): SimReport {
       if (legal.length === 0) break;
       const [r, next] = nextFloat(agentRng);
       agentRng = next;
-      const action = pickWeighted(legal, r);
+      let action = pickWeighted(legal, r);
+      // Now and then, propose a random valid trade instead (FR-08).
+      if ((state.turn.phase === 'MANAGE' || state.turn.phase === 'DEBT') && !state.trade && r < 0.04) {
+        const [r2, n2] = nextFloat(agentRng);
+        agentRng = n2;
+        const offer = randomOffer(engine, state, r2);
+        if (offer) action = { type: 'PROPOSE_TRADE', offer };
+      }
       const result = engine.step(state, action);
       for (const e of result.events) report.events[e.type] = (report.events[e.type] ?? 0) + 1;
       const v = checkInvariants(engine, state, result.state, result.events);
