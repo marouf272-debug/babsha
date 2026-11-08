@@ -65,6 +65,14 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-57 | 2026-11-08 | Difficulty order is checked by simulation: Hard must beat Easy in more than 60 percent of head-to-head games (a test in npm test). | Builder | FR-13 names three levels; the test stops a later change from silently inverting them. |
 | D-58 | 2026-11-08 | Hard declines uncontested tiles to buy them at auction only in two-player games. | Builder | Balance report: auctions sell at 19 percent of list with 2 players but 88 percent with 4, and an always-decline player wins only 21 percent of 4-player games. |
 | D-59 | 2026-11-08 | Q-26 and Q-02 closed: Sprint S3 approved and the economy numbers approved as they are, including start cash ৳10,000. Retune after the first playtest if needed. | Owner | Answered in chat after reading sim/reports/balance.md. |
+| D-60 | 2026-11-08 | Q-24 closed: keep `three@0.186.0`. `npm diff` shows 0.186.1 changes only WebGPU and node-material files, which the WebGL renderer does not use. | Builder | Checked as D-19 asked, at the start of S4. |
+| D-61 | 2026-11-08 | S4 starting camera: tilted tabletop (board square to the screen, viewed from the bottom edge). Camera azimuth, elevation and zoom are values in data/scene.json. Both presets are compared on the phone in S5. | Owner | Plan 3.6. |
+| D-62 | 2026-11-08 | Auctions on one phone take turns: one bidder at a time, in seat order after the high bidder, raises or folds. | Owner | Same order the computer players use. |
+| D-63 | 2026-11-08 | The S4 new-game screen offers player count and a seat type per seat (Human, Easy, Medium, Hard). Start cash and the turn timer settings wait for S7. | Owner | |
+| D-64 | 2026-11-08 | Noto Sans Bengali is bundled from @fontsource (OFL 1.1), recorded in docs/LICENSES.md. | Owner | Works offline later and sends nothing to Google (plan 2.2 privacy). |
+| D-65 | 2026-11-08 | Skill conflicts resolved for the plan: prototype-fast says greybox code is throwaway, but the plan builds S5 and S6 on the S4 interface, so it is written to keep. threejs-scene-setup uses a perspective camera with orbit controls; the plan fixes one orthographic camera with no pan or zoom. | Builder | CLAUDE.md: follow the plan, report the conflict. |
+| D-66 | 2026-11-08 | Builder reading for S4: player names are their token names in the chosen language (Rickshaw, CNG auto, ...), so every visible string switches with the language toggle. Typed custom names can come later. | Builder | FR-15 acceptance check. |
+| D-67 | 2026-11-08 | Builder reading for S4: tile signs are drawn upright for the fixed camera, not rotated per board side as on a printed board. | Builder | Readability from one fixed viewpoint; revisit with the S5 style guide. |
 
 ## Open questions
 

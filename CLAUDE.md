@@ -56,3 +56,6 @@ Babsha (working title) is a Dhaka-themed property trading board game for the bro
 - `npm run test:e2e`: Playwright against the production preview
 - `npm run lint`: ESLint
 - `npm run sim`: headless simulation, report written to sim/reports
+- `npm run balance`: balance report over thousands of computer games (about 3 minutes), written to sim/reports/balance.md
+- `npm run phone`: production build served on the local network (port 5181) to open on a phone on the same Wi-Fi
+- Test mode: open the game with `?test=1` for instant animations and no computer delay (used by Playwright)
