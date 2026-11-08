@@ -118,9 +118,11 @@ What the S5 screenshots show (docs/screenshots/s5-*.png, iPhone 13 Pro size):
 
 ## 9. Performance budget
 
-Target: 40 frames per second on the iPhone 13 Pro (D-69), plus one mid-range Android check. Measure with `?bench=1` (every token hopping, dice rolling, readout of frames per second, draw calls and triangles) or `?fps=1` during a real game.
+Target: 40 frames per second on the iPhone 13 Pro (D-69). The Android check was dropped by the owner (D-91). Measure with `?bench=1` (every token hopping, dice rolling, readout of frames per second, draw calls and triangles) or `?fps=1` during a real game.
 
 Budgets: pixel ratio at most 1.5, under 200 draw calls, under 60,000 triangles for the full board.
+
+S7 measurement (D-97): the bench at iPhone 13 Pro size runs at 40 draw calls and 3,698 triangles at pixel ratio 1.5, well inside the budget. The board draws only while something moves.
 
 S6 measurement: the clean board costs about 15 draw calls; each built property's landmark adds up to 4, so a board with every property built stays near 100, half the budget. The sample position with 7 built properties: 40 draw calls, about 3,700 triangles, 43 fps low in headless Chrome with the CPU slowed 4 times. (Before the owner asked for clean tiles, all 40 dressed cost 17 draw calls merged; S5, Dark Blue only, cost 185.) Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
 

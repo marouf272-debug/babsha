@@ -658,10 +658,22 @@ export class BoardScene {
     return this.state;
   }
 
+  // Frees the GPU memory and the WebGL context, so a phone that plays many games in a row does
+  // not run out (iOS keeps few live contexts). D-97.
   dispose(): void {
     this.renderer.setAnimationLoop(null);
     this.timer.dispose();
+    this.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      mesh.geometry?.dispose();
+      const mats = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
+      for (const m of mats) {
+        for (const v of Object.values(m)) if (v instanceof THREE.Texture) v.dispose();
+        m.dispose();
+      }
+    });
     this.renderer.dispose();
+    this.renderer.forceContextLoss();
   }
 }
 
