@@ -1,0 +1,65 @@
+{
+  "status": "From plan sections 2.3 and 2.4 (approved), except values marked as assumptions in plan Appendix C.",
+  "currency": {
+    "code": "BDT",
+    "symbol": "৳"
+  },
+  "players": {
+    "min": 2,
+    "max": 6
+  },
+  "board": {
+    "tiles": 40
+  },
+  "dice": {
+    "count": 2,
+    "sides": 6,
+    "doublesToJam": 3
+  },
+  "startCash": 10000,
+  "goSalary": 2000,
+  "hub": {
+    "price": 2000,
+    "rentByHubsOwned": [
+      250,
+      500,
+      1000,
+      2000
+    ]
+  },
+  "utility": {
+    "price": 1500,
+    "diceMultiplierByUtilitiesOwned": [
+      40,
+      100
+    ]
+  },
+  "tax": {
+    "super": 1000,
+    "city": 1000
+  },
+  "jam": {
+    "fine": 500,
+    "maxFailedTurns": 3
+  },
+  "rent": {
+    "unbuiltFullSetMultiplier": 2
+  },
+  "building": {
+    "maxHouses": 4,
+    "sellBackRate": 0.5,
+    "houseSupply": "unlimited"
+  },
+  "mortgage": {
+    "rate": 0.5,
+    "redeemInterest": 0.1
+  },
+  "auction": {
+    "openingBid": 0,
+    "minRaise": 100
+  },
+  "assumptions": {
+    "jam.fine": "Plan Appendix C assumption, awaiting owner confirmation.",
+    "tax.city": "Plan Appendix C assumption, awaiting owner confirmation."
+  }
+}

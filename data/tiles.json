@@ -1,0 +1,593 @@
+{
+  "status": "PROPOSAL. Property prices, house costs, hotel costs and rents are proposals awaiting owner approval. Not final.",
+  "rentFormula": "base = price / 10 - 40; 1 house = 5 x base; 2 houses = 15 x base; 3 houses = 3 x price; 4 houses = 4 x price; hotel = 5 x price. Rounded to the nearest 10 Taka.",
+  "rentIndex": [
+    "unbuilt",
+    "1 house",
+    "2 houses",
+    "3 houses",
+    "4 houses",
+    "hotel"
+  ],
+  "groups": [
+    {
+      "id": "brown",
+      "nameKey": "group.brown",
+      "side": 1
+    },
+    {
+      "id": "light_blue",
+      "nameKey": "group.light_blue",
+      "side": 1
+    },
+    {
+      "id": "pink",
+      "nameKey": "group.pink",
+      "side": 2
+    },
+    {
+      "id": "orange",
+      "nameKey": "group.orange",
+      "side": 2
+    },
+    {
+      "id": "red",
+      "nameKey": "group.red",
+      "side": 3
+    },
+    {
+      "id": "yellow",
+      "nameKey": "group.yellow",
+      "side": 3
+    },
+    {
+      "id": "green",
+      "nameKey": "group.green",
+      "side": 4
+    },
+    {
+      "id": "dark_blue",
+      "nameKey": "group.dark_blue",
+      "side": 4
+    }
+  ],
+  "tiles": [
+    {
+      "pos": 0,
+      "id": "go",
+      "type": "corner",
+      "nameKey": "tile.go",
+      "corner": "go",
+      "artHook": "Collect salary"
+    },
+    {
+      "pos": 1,
+      "id": "puran_dhaka",
+      "type": "property",
+      "nameKey": "tile.puran_dhaka",
+      "group": "brown",
+      "price": 600,
+      "houseCost": 500,
+      "hotelCost": 500,
+      "rent": [
+        20,
+        100,
+        300,
+        1800,
+        2400,
+        3000
+      ],
+      "artHook": "Old Dhaka rooftops and kites"
+    },
+    {
+      "pos": 2,
+      "id": "dohs_1",
+      "type": "dohs",
+      "nameKey": "tile.dohs"
+    },
+    {
+      "pos": 3,
+      "id": "chawk_bazar",
+      "type": "property",
+      "nameKey": "tile.chawk_bazar",
+      "group": "brown",
+      "price": 600,
+      "houseCost": 500,
+      "hotelCost": 500,
+      "rent": [
+        20,
+        100,
+        300,
+        1800,
+        2400,
+        3000
+      ],
+      "artHook": "Narrow lanes, old balconies"
+    },
+    {
+      "pos": 4,
+      "id": "super_tax",
+      "type": "tax",
+      "nameKey": "tile.super_tax",
+      "tax": "super",
+      "artHook": "Flat tax"
+    },
+    {
+      "pos": 5,
+      "id": "kamalapur",
+      "type": "hub",
+      "nameKey": "tile.kamalapur",
+      "artHook": "Rail"
+    },
+    {
+      "pos": 6,
+      "id": "jatrabari",
+      "type": "property",
+      "nameKey": "tile.jatrabari",
+      "group": "light_blue",
+      "price": 1000,
+      "houseCost": 500,
+      "hotelCost": 500,
+      "rent": [
+        60,
+        300,
+        900,
+        3000,
+        4000,
+        5000
+      ],
+      "artHook": "Flyover"
+    },
+    {
+      "pos": 7,
+      "id": "lucky_1",
+      "type": "lucky",
+      "nameKey": "tile.lucky"
+    },
+    {
+      "pos": 8,
+      "id": "motijheel",
+      "type": "property",
+      "nameKey": "tile.motijheel",
+      "group": "light_blue",
+      "price": 1000,
+      "houseCost": 500,
+      "hotelCost": 500,
+      "rent": [
+        60,
+        300,
+        900,
+        3000,
+        4000,
+        5000
+      ],
+      "artHook": "Commercial district"
+    },
+    {
+      "pos": 9,
+      "id": "basabo",
+      "type": "property",
+      "nameKey": "tile.basabo",
+      "group": "light_blue",
+      "price": 1200,
+      "houseCost": 500,
+      "hotelCost": 500,
+      "rent": [
+        80,
+        400,
+        1200,
+        3600,
+        4800,
+        6000
+      ]
+    },
+    {
+      "pos": 10,
+      "id": "jam",
+      "type": "corner",
+      "nameKey": "tile.jam",
+      "corner": "jam",
+      "artHook": "Just passing, or stuck"
+    },
+    {
+      "pos": 11,
+      "id": "mirpur",
+      "type": "property",
+      "nameKey": "tile.mirpur",
+      "group": "pink",
+      "price": 1400,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        100,
+        500,
+        1500,
+        4200,
+        5600,
+        7000
+      ],
+      "artHook": "Zoo area"
+    },
+    {
+      "pos": 12,
+      "id": "desco",
+      "type": "utility",
+      "nameKey": "tile.desco",
+      "artHook": "Electricity"
+    },
+    {
+      "pos": 13,
+      "id": "mohammadpur",
+      "type": "property",
+      "nameKey": "tile.mohammadpur",
+      "group": "pink",
+      "price": 1400,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        100,
+        500,
+        1500,
+        4200,
+        5600,
+        7000
+      ]
+    },
+    {
+      "pos": 14,
+      "id": "shyamoli",
+      "type": "property",
+      "nameKey": "tile.shyamoli",
+      "group": "pink",
+      "price": 1600,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        120,
+        600,
+        1800,
+        4800,
+        6400,
+        8000
+      ]
+    },
+    {
+      "pos": 15,
+      "id": "sadarghat",
+      "type": "hub",
+      "nameKey": "tile.sadarghat",
+      "artHook": "River launches"
+    },
+    {
+      "pos": 16,
+      "id": "farmgate",
+      "type": "property",
+      "nameKey": "tile.farmgate",
+      "group": "orange",
+      "price": 1800,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        140,
+        700,
+        2100,
+        5400,
+        7200,
+        9000
+      ]
+    },
+    {
+      "pos": 17,
+      "id": "dohs_2",
+      "type": "dohs",
+      "nameKey": "tile.dohs"
+    },
+    {
+      "pos": 18,
+      "id": "karwan_bazar",
+      "type": "property",
+      "nameKey": "tile.karwan_bazar",
+      "group": "orange",
+      "price": 1800,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        140,
+        700,
+        2100,
+        5400,
+        7200,
+        9000
+      ],
+      "artHook": "Wholesale market"
+    },
+    {
+      "pos": 19,
+      "id": "tejgaon",
+      "type": "property",
+      "nameKey": "tile.tejgaon",
+      "group": "orange",
+      "price": 2000,
+      "houseCost": 1000,
+      "hotelCost": 1000,
+      "rent": [
+        160,
+        800,
+        2400,
+        6000,
+        8000,
+        10000
+      ],
+      "artHook": "Industrial area"
+    },
+    {
+      "pos": 20,
+      "id": "cha_adda",
+      "type": "corner",
+      "nameKey": "tile.cha_adda",
+      "corner": "cha_adda",
+      "artHook": "Free rest stop"
+    },
+    {
+      "pos": 21,
+      "id": "tsc",
+      "type": "property",
+      "nameKey": "tile.tsc",
+      "group": "red",
+      "price": 2200,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        180,
+        900,
+        2700,
+        6600,
+        8800,
+        11000
+      ],
+      "artHook": "University area"
+    },
+    {
+      "pos": 22,
+      "id": "lucky_2",
+      "type": "lucky",
+      "nameKey": "tile.lucky"
+    },
+    {
+      "pos": 23,
+      "id": "paltan",
+      "type": "property",
+      "nameKey": "tile.paltan",
+      "group": "red",
+      "price": 2200,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        180,
+        900,
+        2700,
+        6600,
+        8800,
+        11000
+      ]
+    },
+    {
+      "pos": 24,
+      "id": "shahbag",
+      "type": "property",
+      "nameKey": "tile.shahbag",
+      "group": "red",
+      "price": 2400,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        200,
+        1000,
+        3000,
+        7200,
+        9600,
+        12000
+      ],
+      "artHook": "National Museum area"
+    },
+    {
+      "pos": 25,
+      "id": "gabtoli",
+      "type": "hub",
+      "nameKey": "tile.gabtoli",
+      "artHook": "Bus"
+    },
+    {
+      "pos": 26,
+      "id": "mohakhali",
+      "type": "property",
+      "nameKey": "tile.mohakhali",
+      "group": "yellow",
+      "price": 2600,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        220,
+        1100,
+        3300,
+        7800,
+        10400,
+        13000
+      ],
+      "artHook": "Bus terminal area"
+    },
+    {
+      "pos": 27,
+      "id": "bashundhara",
+      "type": "property",
+      "nameKey": "tile.bashundhara",
+      "group": "yellow",
+      "price": 2600,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        220,
+        1100,
+        3300,
+        7800,
+        10400,
+        13000
+      ],
+      "artHook": "Large shopping mall"
+    },
+    {
+      "pos": 28,
+      "id": "wasa",
+      "type": "utility",
+      "nameKey": "tile.wasa",
+      "artHook": "Water"
+    },
+    {
+      "pos": 29,
+      "id": "lalmatia",
+      "type": "property",
+      "nameKey": "tile.lalmatia",
+      "group": "yellow",
+      "price": 2800,
+      "houseCost": 1500,
+      "hotelCost": 1500,
+      "rent": [
+        240,
+        1200,
+        3600,
+        8400,
+        11200,
+        14000
+      ]
+    },
+    {
+      "pos": 30,
+      "id": "go_to_jam",
+      "type": "corner",
+      "nameKey": "tile.go_to_jam",
+      "corner": "go_to_jam",
+      "artHook": "Sends player to Jam"
+    },
+    {
+      "pos": 31,
+      "id": "dhanmondi",
+      "type": "property",
+      "nameKey": "tile.dhanmondi",
+      "group": "green",
+      "price": 3000,
+      "houseCost": 2000,
+      "hotelCost": 2000,
+      "rent": [
+        260,
+        1300,
+        3900,
+        9000,
+        12000,
+        15000
+      ],
+      "artHook": "Lake"
+    },
+    {
+      "pos": 32,
+      "id": "banani",
+      "type": "property",
+      "nameKey": "tile.banani",
+      "group": "green",
+      "price": 3000,
+      "houseCost": 2000,
+      "hotelCost": 2000,
+      "rent": [
+        260,
+        1300,
+        3900,
+        9000,
+        12000,
+        15000
+      ]
+    },
+    {
+      "pos": 33,
+      "id": "dohs_3",
+      "type": "dohs",
+      "nameKey": "tile.dohs"
+    },
+    {
+      "pos": 34,
+      "id": "uttara",
+      "type": "property",
+      "nameKey": "tile.uttara",
+      "group": "green",
+      "price": 3200,
+      "houseCost": 2000,
+      "hotelCost": 2000,
+      "rent": [
+        280,
+        1400,
+        4200,
+        9600,
+        12800,
+        16000
+      ],
+      "artHook": "Metro Rail"
+    },
+    {
+      "pos": 35,
+      "id": "airport",
+      "type": "hub",
+      "nameKey": "tile.airport",
+      "artHook": "Air"
+    },
+    {
+      "pos": 36,
+      "id": "lucky_3",
+      "type": "lucky",
+      "nameKey": "tile.lucky"
+    },
+    {
+      "pos": 37,
+      "id": "gulshan",
+      "type": "property",
+      "nameKey": "tile.gulshan",
+      "group": "dark_blue",
+      "price": 3500,
+      "houseCost": 2000,
+      "hotelCost": 2000,
+      "rent": [
+        310,
+        1550,
+        4650,
+        10500,
+        14000,
+        17500
+      ],
+      "artHook": "Lake and circle"
+    },
+    {
+      "pos": 38,
+      "id": "city_tax",
+      "type": "tax",
+      "nameKey": "tile.city_tax",
+      "tax": "city",
+      "artHook": "Flat tax"
+    },
+    {
+      "pos": 39,
+      "id": "baridhara",
+      "type": "property",
+      "nameKey": "tile.baridhara",
+      "group": "dark_blue",
+      "price": 4000,
+      "houseCost": 2000,
+      "hotelCost": 2000,
+      "rent": [
+        360,
+        1800,
+        5400,
+        12000,
+        16000,
+        20000
+      ],
+      "artHook": "Lakeside"
+    }
+  ]
+}

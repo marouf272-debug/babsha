@@ -1,0 +1,274 @@
+{
+  "status": "DRAFT. Card effects and amounts are proposals. Every Bangla card string needs native review (tracked in bn-review.json).",
+  "effectTypes": {
+    "collect": "Bank pays the player {amount}.",
+    "pay": "Player pays the bank {amount}.",
+    "collectFromEach": "Every other active player pays the player {amount}.",
+    "payEach": "Player pays every other active player {amount}.",
+    "moveTo": "Player moves clockwise to {tile} and the tile resolves. Passing GO pays the salary.",
+    "moveBy": "Player moves {steps} tiles. Negative is backwards and does not pass GO. Card text shows the number without its sign.",
+    "goToJam": "Player goes directly to Jam without passing GO.",
+    "jamFreeCard": "Player keeps the card until used to leave Jam.",
+    "repairs": "Player pays the bank {perHouse} per house and {perHotel} per hotel owned."
+  },
+  "decks": {
+    "lucky": [
+      {
+        "id": "lucky_01",
+        "textKey": "card.lucky_01",
+        "effect": {
+          "type": "moveTo",
+          "tile": "uttara"
+        }
+      },
+      {
+        "id": "lucky_02",
+        "textKey": "card.lucky_02",
+        "effect": {
+          "type": "moveTo",
+          "tile": "go"
+        }
+      },
+      {
+        "id": "lucky_03",
+        "textKey": "card.lucky_03",
+        "effect": {
+          "type": "moveBy",
+          "steps": -3
+        }
+      },
+      {
+        "id": "lucky_04",
+        "textKey": "card.lucky_04",
+        "effect": {
+          "type": "goToJam"
+        }
+      },
+      {
+        "id": "lucky_05",
+        "textKey": "card.lucky_05",
+        "effect": {
+          "type": "collect",
+          "amount": 500
+        }
+      },
+      {
+        "id": "lucky_06",
+        "textKey": "card.lucky_06",
+        "effect": {
+          "type": "pay",
+          "amount": 500
+        }
+      },
+      {
+        "id": "lucky_07",
+        "textKey": "card.lucky_07",
+        "effect": {
+          "type": "collect",
+          "amount": 1000
+        }
+      },
+      {
+        "id": "lucky_08",
+        "textKey": "card.lucky_08",
+        "effect": {
+          "type": "pay",
+          "amount": 1500
+        }
+      },
+      {
+        "id": "lucky_09",
+        "textKey": "card.lucky_09",
+        "effect": {
+          "type": "collect",
+          "amount": 1500
+        }
+      },
+      {
+        "id": "lucky_10",
+        "textKey": "card.lucky_10",
+        "effect": {
+          "type": "jamFreeCard"
+        }
+      },
+      {
+        "id": "lucky_11",
+        "textKey": "card.lucky_11",
+        "effect": {
+          "type": "repairs",
+          "perHouse": 250,
+          "perHotel": 1000
+        }
+      },
+      {
+        "id": "lucky_12",
+        "textKey": "card.lucky_12",
+        "effect": {
+          "type": "moveTo",
+          "tile": "sadarghat"
+        }
+      },
+      {
+        "id": "lucky_13",
+        "textKey": "card.lucky_13",
+        "effect": {
+          "type": "moveTo",
+          "tile": "puran_dhaka"
+        }
+      },
+      {
+        "id": "lucky_14",
+        "textKey": "card.lucky_14",
+        "effect": {
+          "type": "pay",
+          "amount": 200
+        }
+      },
+      {
+        "id": "lucky_15",
+        "textKey": "card.lucky_15",
+        "effect": {
+          "type": "moveTo",
+          "tile": "airport"
+        }
+      },
+      {
+        "id": "lucky_16",
+        "textKey": "card.lucky_16",
+        "effect": {
+          "type": "collect",
+          "amount": 200
+        }
+      }
+    ],
+    "dohs": [
+      {
+        "id": "dohs_01",
+        "textKey": "card.dohs_01",
+        "effect": {
+          "type": "moveTo",
+          "tile": "go"
+        }
+      },
+      {
+        "id": "dohs_02",
+        "textKey": "card.dohs_02",
+        "effect": {
+          "type": "collect",
+          "amount": 1000
+        }
+      },
+      {
+        "id": "dohs_03",
+        "textKey": "card.dohs_03",
+        "effect": {
+          "type": "pay",
+          "amount": 500
+        }
+      },
+      {
+        "id": "dohs_04",
+        "textKey": "card.dohs_04",
+        "effect": {
+          "type": "collectFromEach",
+          "amount": 100
+        }
+      },
+      {
+        "id": "dohs_05",
+        "textKey": "card.dohs_05",
+        "effect": {
+          "type": "payEach",
+          "amount": 100
+        }
+      },
+      {
+        "id": "dohs_06",
+        "textKey": "card.dohs_06",
+        "effect": {
+          "type": "jamFreeCard"
+        }
+      },
+      {
+        "id": "dohs_07",
+        "textKey": "card.dohs_07",
+        "effect": {
+          "type": "goToJam"
+        }
+      },
+      {
+        "id": "dohs_08",
+        "textKey": "card.dohs_08",
+        "effect": {
+          "type": "collect",
+          "amount": 1000
+        }
+      },
+      {
+        "id": "dohs_09",
+        "textKey": "card.dohs_09",
+        "effect": {
+          "type": "pay",
+          "amount": 800
+        }
+      },
+      {
+        "id": "dohs_10",
+        "textKey": "card.dohs_10",
+        "effect": {
+          "type": "collect",
+          "amount": 500
+        }
+      },
+      {
+        "id": "dohs_11",
+        "textKey": "card.dohs_11",
+        "effect": {
+          "type": "pay",
+          "amount": 600
+        }
+      },
+      {
+        "id": "dohs_12",
+        "textKey": "card.dohs_12",
+        "effect": {
+          "type": "pay",
+          "amount": 500
+        }
+      },
+      {
+        "id": "dohs_13",
+        "textKey": "card.dohs_13",
+        "effect": {
+          "type": "repairs",
+          "perHouse": 300,
+          "perHotel": 1200
+        }
+      },
+      {
+        "id": "dohs_14",
+        "textKey": "card.dohs_14",
+        "effect": {
+          "type": "collect",
+          "amount": 200
+        }
+      },
+      {
+        "id": "dohs_15",
+        "textKey": "card.dohs_15",
+        "effect": {
+          "type": "collect",
+          "amount": 600
+        }
+      },
+      {
+        "id": "dohs_16",
+        "textKey": "card.dohs_16",
+        "effect": {
+          "type": "moveTo",
+          "tile": "dhanmondi"
+        }
+      }
+    ]
+  }
+}
