@@ -51,3 +51,11 @@ export const pos = (id: string) => {
 };
 
 export const actionTypes = (actions: Action[]) => actions.map((a) => a.type);
+
+// Declines a pending purchase and has every player fold, leaving the tile unowned.
+export function skipBuy(state: GameState): GameState {
+  if (state.turn.phase !== 'BUY_DECISION') return state;
+  let s = engine.step(state, { type: 'DECLINE' }).state;
+  for (const p of [...(s.auction?.inPlayers ?? [])]) s = engine.step(s, { type: 'FOLD', player: p }).state;
+  return s;
+}

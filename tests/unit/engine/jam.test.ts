@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../../src/engine';
-import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes } from './helpers';
+import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes, skipBuy } from './helpers';
 
 const start = () => ready(newGame(2, 21).state);
 const jailed = (extra: (s: GameState) => void = () => {}) =>
@@ -48,7 +48,7 @@ describe('Jam (FR-02, FR-10 entry and exit, R-35, R-36, R-49 to R-52)', () => {
     const s0 = jailed();
     let r = step(s0, { type: 'PAY_JAM_FINE' });
     r = rollAs(r.state, 2, 2); // Shyamoli at 14, unowned
-    r = step(r.state, { type: 'DECLINE' });
+    r = { ...r, state: skipBuy(r.state) };
     r = step(r.state, { type: 'END_TURN' });
     expect(r.state.turn.active).toBe(s0.turn.active);
     expect(r.state.turn.phase).toBe('ROLL');
@@ -66,7 +66,7 @@ describe('Jam (FR-02, FR-10 entry and exit, R-35, R-36, R-49 to R-52)', () => {
     expect(r.state.players[me]!.inJam).toBe(false);
     expect(r.state.players[me]!.position).toBe(16);
     expect(ofType(r.events, 'leftJam')).toEqual([{ type: 'leftJam', player: me, by: 'doubles' }]);
-    if (r.state.turn.phase === 'BUY_DECISION') r = step(r.state, { type: 'DECLINE' });
+    r = { ...r, state: skipBuy(r.state) };
     r = step(r.state, { type: 'END_TURN' });
     expect(r.state.turn.active).not.toBe(me);
   });

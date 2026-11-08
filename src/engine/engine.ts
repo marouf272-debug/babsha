@@ -102,6 +102,17 @@ export function createEngine(rules: Rules): Engine {
         actions.push({ type: 'DECLINE', player: me });
         return actions;
       }
+      case 'AUCTION': {
+        const a = state.auction!;
+        const min = minBid(state);
+        const actions: Action[] = [];
+        for (const pl of a.inPlayers) {
+          if (pl === a.highBidder) continue; // D-43: the high bidder cannot fold
+          if (state.players[pl]!.cash >= min) actions.push({ type: 'BID', player: pl, amount: min });
+          actions.push({ type: 'FOLD', player: pl });
+        }
+        return actions;
+      }
       case 'MANAGE':
         return [{ type: 'END_TURN', player: me }];
       default:
@@ -109,8 +120,18 @@ export function createEngine(rules: Rules): Engine {
     }
   }
 
+  // D-43: first bid may be the opening bid (0), each later bid at least the minimum raise more.
+  const minBid = (state: GameState) => {
+    const a = state.auction!;
+    return a.highBid === null ? config.auction.openingBid : a.highBid + config.auction.minRaise;
+  };
+
   // Matches a requested action against the legal list: same type, same actor, same target.
+  // A bid may be any whole amount from the minimum up to the bidder's cash (D-33).
   function isLegal(state: GameState, action: Action): boolean {
+    if (action.type === 'BID') {
+      if (!Number.isInteger(action.amount) || action.amount < minBid(state) || action.amount > state.players[action.player]!.cash) return false;
+    }
     return legalActions(state).some((a) => {
       if (a.type !== action.type) return false;
       if (action.player !== undefined && a.player !== action.player) return false;
@@ -185,10 +206,25 @@ export function createEngine(rules: Rules): Engine {
       case 'DECLINE': {
         const id = state.turn.pendingTile!;
         events.push({ type: 'declined', player: me, tileId: id });
-        // S1 STUB (D-24): FR-04 auction arrives in S2. Until then the property stays unowned.
-        events.push({ type: 'auctionStub', tileId: id });
         state.turn.pendingTile = null;
-        state.turn.phase = 'MANAGE';
+        startAuction(state, events, id); // FR-04, R-18
+        break;
+      }
+
+      case 'BID': {
+        const a = state.auction!;
+        a.highBid = action.amount;
+        a.highBidder = action.player;
+        events.push({ type: 'bid', player: action.player, tileId: a.tileId, amount: action.amount });
+        checkAuctionEnd(state, events);
+        break;
+      }
+
+      case 'FOLD': {
+        const a = state.auction!;
+        a.inPlayers = a.inPlayers.filter((pl) => pl !== action.player);
+        events.push({ type: 'folded', player: action.player, tileId: a.tileId });
+        checkAuctionEnd(state, events);
         break;
       }
 
@@ -205,8 +241,43 @@ export function createEngine(rules: Rules): Engine {
 
   // Decides what happens next after any action: debts first, then auctions, then the normal turn.
   function settle(state: GameState, events: GameEvent[]): void {
-    void events;
     if (state.turn.phase === 'GAME_OVER') return;
+    if (state.auction) {
+      state.turn.phase = 'AUCTION';
+      return;
+    }
+    if (state.auctionQueue.length > 0) {
+      startAuction(state, events, state.auctionQueue.shift()!);
+      return;
+    }
+    if (state.turn.phase === 'AUCTION') state.turn.phase = 'MANAGE';
+  }
+
+  // ---------- auction (FR-04) ----------
+
+  function startAuction(state: GameState, events: GameEvent[], tileId: string): void {
+    const players = alive(state); // D-33: every active player, including the one who declined
+    state.auction = { tileId, highBid: null, highBidder: null, inPlayers: players };
+    state.turn.phase = 'AUCTION';
+    events.push({ type: 'auctionStarted', tileId, players: [...players] });
+  }
+
+  // R-19, R-21, D-43: ends when only the high bidder is left, or when everyone has folded.
+  function checkAuctionEnd(state: GameState, events: GameEvent[]): void {
+    const a = state.auction!;
+    if (a.inPlayers.length === 0) {
+      events.push({ type: 'auctionUnsold', tileId: a.tileId });
+      state.auction = null;
+      return;
+    }
+    if (a.inPlayers.length === 1 && a.inPlayers[0] === a.highBidder) {
+      const winner = a.highBidder;
+      const price = a.highBid!;
+      state.players[winner]!.cash -= price; // D-33: never more than the winner holds
+      state.properties[a.tileId] = { owner: winner, houses: 0, mortgaged: false };
+      events.push({ type: 'auctionWon', player: winner, tileId: a.tileId, price });
+      state.auction = null;
+    }
   }
 
   // Moves cash from one player to a creditor. S1 STUB (D-24): cash may go below zero, no DEBT yet.
@@ -365,6 +436,5 @@ export function createEngine(rules: Rules): Engine {
     events.push({ type: 'turnPassed', from: me, to: next });
   }
 
-  void alive;
   return { rules, newGame, legalActions, step, rentFor };
 }

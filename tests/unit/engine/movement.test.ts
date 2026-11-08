@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes } from './helpers';
+import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes, skipBuy } from './helpers';
 
 const start = () => ready(newGame(3, 7).state);
 
@@ -64,7 +64,7 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
     let r = rollAs(s0, 1, 1);
     r = step(r.state, { type: 'END_TURN' });
     r = rollAs(r.state, 2, 2); // lands on Jatrabari, unowned
-    r = step(r.state, { type: 'DECLINE' });
+    r = { ...r, state: skipBuy(r.state) };
     r = step(r.state, { type: 'END_TURN' });
     r = rollAs(r.state, 3, 3);
     const p = r.state.players[me]!;

@@ -16,7 +16,7 @@ describe('S1 simulation (plan 4.3 acceptance check)', () => {
     expect(report.games).toBe(1000);
     expect(report.violations.slice(0, 10)).toEqual([]);
     // The run must actually exercise the S1 rules, not idle.
-    for (const type of ['salary', 'purchased', 'rentPaid', 'taxPaid', 'sentToJam', 'leftJam', 'jamFinePaid', 'stayedInJam', 'extraRoll', 'auctionStub', 'cardStub']) {
+    for (const type of ['salary', 'purchased', 'rentPaid', 'taxPaid', 'sentToJam', 'leftJam', 'jamFinePaid', 'stayedInJam', 'extraRoll', 'auctionStarted', 'auctionWon', 'auctionUnsold', 'cardStub']) {
       expect(report.events[type] ?? 0, type).toBeGreaterThan(0);
     }
     const summary = { ...report, finalStates: undefined }; // states are too large for the report

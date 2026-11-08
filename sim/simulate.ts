@@ -30,6 +30,7 @@ function bankFlow(events: GameEvent[]): number {
     else if (e.type === 'purchased') flow -= e.price;
     else if (e.type === 'taxPaid') flow -= e.amount;
     else if (e.type === 'jamFinePaid') flow -= e.amount;
+    else if (e.type === 'auctionWon') flow -= e.price;
   }
   return flow;
 }

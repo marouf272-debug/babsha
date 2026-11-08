@@ -30,12 +30,6 @@ describe('buying (FR-03, R-17, R-18)', () => {
     expect(() => step(state, { type: 'BUY' })).toThrow(/not legal/);
   });
 
-  it('FR-03, S1 STUB (D-24): DECLINE leaves the property unowned until auctions arrive in S2', () => {
-    const r = step(rollAs(start(), 1, 2).state, { type: 'DECLINE' });
-    expect(r.state.properties['chawk_bazar']).toBeUndefined();
-    expect(ofType(r.events, 'auctionStub')).toHaveLength(1);
-    expect(r.state.turn.phase).toBe('MANAGE');
-  });
 
   it('FR-03: hubs and utilities are offered at their configured prices with their rent schedules', () => {
     const hub = rollAs(start(), 2, 3); // Kamalapur at 5
