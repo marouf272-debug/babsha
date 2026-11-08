@@ -16,6 +16,17 @@ export interface Engine {
   tradeProblem(state: GameState, offer: Omit<TradeOffer, 'from'>): string | null;
   // The action a turn timer takes when it runs out, or null where there is no timer (D-34, D-52).
   passiveAction(state: GameState, player?: number): Action | null;
+  // Amounts for a tile, so the interface never repeats the rules: price, mortgage value, redeem
+  // cost, the cost of the next building and the refund for selling one (null where not possible).
+  quote(state: GameState, tileId: string): Quote;
+}
+
+export interface Quote {
+  price: number;
+  mortgageValue: number;
+  redeemCost: number;
+  buildCost: number | null;
+  sellRefund: number | null;
 }
 
 export function createEngine(rules: Rules): Engine {
@@ -843,5 +854,18 @@ export function createEngine(rules: Rules): Engine {
     events.push({ type: 'turnPassed', from: me, to: next });
   }
 
-  return { rules, newGame, legalActions, step, rentFor, tradeProblem, passiveAction };
+  function quote(state: GameState, tileId: string): Quote {
+    const t = tile(tileId);
+    const houses = state.properties[tileId]?.houses ?? 0;
+    const property = t.type === 'property';
+    return {
+      price: priceOf(t),
+      mortgageValue: mortgageValue(t),
+      redeemCost: redeemCost(t),
+      buildCost: property && houses < hotelLevel ? buildCost(t, houses) : null,
+      sellRefund: property && houses > 0 ? buildCost(t, houses - 1) * config.building.sellBackRate : null,
+    };
+  }
+
+  return { rules, newGame, legalActions, step, rentFor, tradeProblem, passiveAction, quote };
 }
