@@ -59,7 +59,7 @@ How to read this document:
 - **R-25** Transport hub rent depends on how many hubs the owner holds: ৳250, ৳500, ৳1,000 or ৳2,000 for 1, 2, 3 or 4 hubs. (FR-05, plan 2.4)
 - **R-26** Utility rent is the dice total times ৳40 if the owner holds one utility, or times ৳100 if the owner holds both. (FR-05, plan 2.4)
 - **R-27** A mortgaged property collects no rent. (D-16)
-- **R-27a** Not stated: set doubling when one property in the set is mortgaged (Q-10), and whether an owner in Jam collects rent (Q-08).
+- **R-27a** An owner in Jam still collects rent. (D-22) Not stated: set doubling when one property in the set is mortgaged (Q-10), and whether mortgaged hubs and utilities count toward the number owned (Q-25).
 
 ### 5.4 Tax tiles
 
@@ -102,10 +102,10 @@ How to read this document:
 
 ## 9. Jam
 
-- **R-49** A player goes to Jam by rolling a third double (R-15), landing on Go to Jam (R-35), or by a card. (FR-02, FR-10)
+- **R-49** A player goes to Jam by rolling a third double (R-15), landing on Go to Jam (R-35), or by a card. Going to Jam is a direct jump and never pays the GO salary. (FR-02, FR-10, D-23)
 - **R-50** To leave Jam, a player pays a fine of ৳500, rolls doubles, or uses a held card. (plan 2.3, D-18)
-- **R-51** After 3 failed turns in Jam, the fine is forced. (plan 2.3) What happens next on that turn is not stated. (Q-06)
-- **R-52** A player in Jam does not take the doubles extra roll. (plan 3.2, END_TURN "and is not in Jam") Whether leaving Jam by doubles gives an extra roll is not stated. (Q-07)
+- **R-51** A player who pays the fine does so before rolling, then rolls and moves normally. (D-21, D-25) A player who rolls doubles leaves Jam and moves by that roll. (D-21) After 3 failed rolls, the fine is forced and the player moves by that third roll. (plan 2.3, D-21)
+- **R-52** A player in Jam does not take the doubles extra roll, and leaving Jam by rolling doubles gives no extra roll. (plan 3.2, D-21) After being sent to Jam the turn ends with no extra roll. (D-26)
 
 ## 10. Debt, bankruptcy and winning
 

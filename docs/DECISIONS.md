@@ -26,6 +26,13 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-18 | 2026-11-08 | Q-23 closed: Jam fine ৳500 and City Tax ৳1,000 are approved values, no longer assumptions. | Owner | |
 | D-19 | 2026-11-08 | Q-24 closed for now: keep `three@0.186.0`. Read the 0.186.1 patch notes at the start of S4 and ask again if it matters. | Owner | |
 | D-20 | 2026-11-08 | Q-22 closed for now: শুরু for GO, লাকি and ডিওএইচএস for the decks, as drafts pending native review. | Owner | The Bangla reviewer can change them in bn.json without code changes. |
+| D-21 | 2026-11-08 | Q-06 and Q-07 closed, Jam turn built in S1: a player in Jam may pay ৳500 before rolling, then rolls and moves normally. Rolling doubles leaves Jam and moves by that roll, with no extra roll. On the 3rd failed roll the fine is forced and the player moves by that roll. | Owner | Pulled into S1 so simulated games do not stall in Jam. |
+| D-22 | 2026-11-08 | Q-08 partly closed: an owner in Jam still collects rent. Buying, building, mortgaging and trading while in Jam stay open in Q-08. | Owner | |
+| D-23 | 2026-11-08 | Going to Jam (third double, Go to Jam tile, card) is a direct jump and never pays the GO salary. | Owner | Matches the card text. |
+| D-24 | 2026-11-08 | S1 temporary stubs, each replaced in S2 and marked `S1 STUB` in code: card tiles do nothing; declining a purchase leaves the property unowned (no auction); cash may go negative (no DEBT state). | Owner | Keeps S1 to plan scope. |
+| D-25 | 2026-11-08 | Builder reading of D-21: after paying the Jam fine, the roll is a normal roll, so doubles count toward the extra roll and the three doubles rule. | Builder | "Then roll and move" in D-21. Owner may overrule. |
+| D-26 | 2026-11-08 | After being sent to Jam, the turn goes to MANAGE and then END_TURN, with no extra roll. In S1 MANAGE only offers End turn. | Builder | Plan 3.2: END_TURN gives no extra roll to a player in Jam. What MANAGE allows in Jam is Q-08. |
+| D-27 | 2026-11-08 | The engine uses its own Mulberry32 PRNG, stored as one 32-bit number in the game state, with a test pinning its first outputs. | Builder | procedural-gen skill: library RNGs may change between versions, and replays need a stable sequence. |
 
 ## Open questions
 
@@ -35,9 +42,7 @@ Each needs an owner answer. The Blocks column names the sprint that cannot code 
 |---|---|---|---|
 | Q-02 | Plan 2.3 says keep the spec ratio of start cash to prices. The plan does not give the spec property prices, so I cannot check the ratio. With the proposal, start cash ৳10,000 is 2.5 times the top price. Is that the ratio you intended? | Plan 2.3 | S3 |
 | Q-03 | Hotel cost and hotel sell back. Proposal: a hotel costs one more house cost; selling a hotel returns 50 percent of the hotel cost and leaves 4 houses. The plan states neither. | FR-06 | S2 |
-| Q-06 | Jam, third failed turn: the fine is forced. Does the player then move by that third roll, or wait for the next turn? | Plan 2.3 | S2 |
-| Q-07 | Leaving Jam by rolling doubles: does the player move by that roll, and do they get an extra roll? | Plan 2.3, 3.2 | S2 |
-| Q-08 | While in Jam, can a player collect rent, buy, build, mortgage and trade? | Not in plan | S2 |
+| Q-08 | While in Jam, can a player buy, build, mortgage and trade? (Rent: yes, D-22.) | Not in plan | S2 |
 | Q-10 | Does unbuilt rent still double when one property in the full set is mortgaged? | Not in plan | S2 |
 | Q-11 | Mortgage needs an "unimproved" property. Does that mean that property has no buildings, or the whole color set has none? | FR-07 | S2 |
 | Q-12 | Confirm the S2 invariant "no buildings on mortgaged sets" as a rule: no building anywhere in a set while any property in it is mortgaged. | Plan 4.3 | S2 |
@@ -49,3 +54,4 @@ Each needs an owner answer. The Blocks column names the sprint that cannot code 
 | Q-19 | Card effects are proposals: collect, pay, collect from each, pay each, move to a tile (clockwise, salary if GO is passed), move back, go to Jam, Jam exit card, repairs per house and hotel. Approve the effect set and the amounts. | Plan 3.8 | S2 |
 | Q-20 | Turn timer (FR-14): default length, and what expiry does outside the buy decision (MANAGE, auction, DEBT). | FR-14, plan 3.2 | S2 |
 | Q-21 | In DEBT, may a player trade to raise cash? Must buildings be sold before mortgaging? | Plan 3.2 | S2 |
+| Q-25 | Do mortgaged hubs and utilities count toward the number owned when working out hub and utility rent? | FR-05 | S2 (no mortgages exist before S2) |
