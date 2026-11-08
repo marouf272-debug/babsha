@@ -29,7 +29,7 @@ How to read this document:
 
 - **R-10** A turn moves through these states: START_TURN, ROLL, MOVE, RESOLVE, then BUY_DECISION or AUCTION where they apply, then MANAGE, then END_TURN. A DEBT state can be entered at any time and returns to the previous state or ends in GAME_OVER. (plan 3.2)
 - **R-11** In Pass & Play, START_TURN shows a hand-off screen and the next player taps to reveal their view. (FR-12, plan 3.2)
-- **R-12** In MANAGE the active player may build, sell, mortgage, redeem and trade. (plan 3.2)
+- **R-12** In MANAGE the active player may build, sell, mortgage, redeem and trade, also while in Jam. (plan 3.2, D-42)
 
 ## 4. Dice, doubles and movement
 
@@ -50,7 +50,7 @@ How to read this document:
 - **R-19** The auction is live, with bid buttons, a slider, fold and a log. It ends when one bidder remains. (FR-04)
 - **R-20** The opening bid is ৳0 and the minimum raise is ৳100. (plan 2.3)
 - **R-21** If every player folds, the property stays unowned. (plan 2.3)
-- **R-22** Not stated: whether the player who declined may bid, whether a bid may exceed the bidder's cash, and the timer length. (Q-13)
+- **R-22** Every active player may bid, including the player who declined. A bid cannot exceed the bidder's cash. (D-33)
 
 ### 5.3 Rent
 
@@ -59,7 +59,7 @@ How to read this document:
 - **R-25** Transport hub rent depends on how many hubs the owner holds: ৳250, ৳500, ৳1,000 or ৳2,000 for 1, 2, 3 or 4 hubs. (FR-05, plan 2.4)
 - **R-26** Utility rent is the dice total times ৳40 if the owner holds one utility, or times ৳100 if the owner holds both. (FR-05, plan 2.4)
 - **R-27** A mortgaged property collects no rent. (D-16)
-- **R-27a** An owner in Jam still collects rent. (D-22) Not stated: set doubling when one property in the set is mortgaged (Q-10), and whether mortgaged hubs and utilities count toward the number owned (Q-25).
+- **R-27a** An owner in Jam still collects rent. (D-22) Unbuilt rent still doubles when one member of the full set is mortgaged. (D-32) Mortgaged hubs and utilities still count toward the number owned. (D-35)
 
 ### 5.4 Tax tiles
 
@@ -69,9 +69,9 @@ How to read this document:
 ### 5.5 Card tiles
 
 - **R-30** There are two decks, Lucky and DOHS. Landing on a Lucky or DOHS tile draws a card automatically and shows it in an overlay. (FR-09)
-- **R-31** Each deck has 16 cards. (plan 3.8) The card list is a draft in data/cards.json.
+- **R-31** Each deck has 16 cards. (plan 3.8) Card effects and amounts are in data/cards.json, approved (D-41). A card that moves a player to a tile then resolves that tile normally. (D-41)
 - **R-32** A Jam exit card can be held and used later. (plan 2.3, "use a held card")
-- **R-33** Not stated: shuffling, where a drawn card goes, and what happens to a held card on bankruptcy. (Q-17)
+- **R-33** Each deck is shuffled once at game start. A drawn card goes to the bottom of its deck. A held Jam exit card leaves the deck until used, then goes to the bottom. On bankruptcy it returns to the bottom of its deck. (D-40)
 
 ### 5.6 Corners
 
@@ -85,20 +85,20 @@ How to read this document:
 - **R-38** Up to 4 houses per property, then a hotel. (FR-06)
 - **R-39** Buildings sell back to the bank at 50 percent of their cost, following the even rule in reverse. (FR-06)
 - **R-40** House supply is unlimited. (plan 2.3)
-- **R-41** No property in a set may carry buildings while any property in that set is mortgaged. (plan 4.3, S2 invariant "no buildings on mortgaged sets"; Q-12)
-- **R-42** House costs are set per color group in data/tiles.json. (D-13) Not stated: hotel cost and what selling a hotel returns. (Q-03)
+- **R-41** No property in a set may carry buildings while any property in that set is mortgaged. (plan 4.3, D-31)
+- **R-42** House costs are set per color group in data/tiles.json. (D-13) A hotel needs 4 houses on every property in the set and costs one more house cost. Selling a hotel returns 50 percent of its cost and leaves 4 houses. (D-29)
 
 ## 7. Mortgage
 
-- **R-43** An unimproved property can be mortgaged for 50 percent of its face value. (FR-07) Whether "unimproved" means that property or the whole set is unclear. (Q-11)
+- **R-43** A property can be mortgaged for 50 percent of its face value only when its whole color set has no buildings. (FR-07, D-30)
 - **R-44** Redeeming costs the principal plus 10 percent. (FR-07)
 
 ## 8. Trading
 
 - **R-45** Any two active players may trade properties and cash with each other. (FR-08)
 - **R-46** Properties with buildings cannot be traded. (plan 2.3)
-- **R-47** A mortgaged property can be traded. The receiver pays the 10 percent fee on redeeming. (plan 2.3; see Q-15)
-- **R-48** FR-08 says trades happen "with the board visible or hidden". The meaning is unclear. (Q-14)
+- **R-47** A mortgaged property can be traded. The receiver redeems it at the normal cost, principal plus 10 percent, with no extra fee at the trade. (plan 2.3, D-37)
+- **R-48** The trade sheet can be collapsed to show the board. This is an interface feature, not an engine rule. (FR-08, D-36)
 
 ## 9. Jam
 
@@ -113,13 +113,13 @@ How to read this document:
 - **R-54** A player bankrupt to another player transfers all their assets to that player. (plan 2.3)
 - **R-55** A player bankrupt to the bank returns their properties to auction. (plan 2.3)
 - **R-56** The last solvent player wins. (FR-11, plan 2.3)
-- **R-57** Not stated: buildings and mortgages during a bankruptcy transfer, and whether a player in DEBT may trade. (Q-16, Q-21)
+- **R-57** In a bankruptcy, buildings are first sold to the bank at 50 percent. Bankrupt to a player: cash and properties pass on, mortgages stay. Bankrupt to the bank: mortgages are cleared and the properties are auctioned. (D-38) A player in DEBT may trade, sell buildings and mortgage. (D-39)
 
 ## 11. Modes and settings
 
 - **R-58** Release 1 has Pass & Play and vs Computer. (plan decisions table, FR-12, FR-13)
 - **R-59** vs Computer has Easy, Medium and Hard profiles that buy, bid, build, mortgage and trade. (FR-13)
-- **R-60** Settings: player count, starting cash, optional turn timer. (FR-14) Timer length and its effect outside the buy decision are not stated. (Q-20)
+- **R-60** Settings: player count, starting cash, optional turn timer. (FR-14) The timer is off by default, 30 seconds per decision when on. Expiry takes the passive choice: decline the buy, fold the bid, end the turn. No timer in DEBT. (D-34)
 - **R-61** A game can be saved and resumed on the same device, if feasible. (FR-19)
 - **R-62** Not in release 1: board pan, zoom and auto-focus (FR-18, dropped), online matchmaking and rooms (FR-20, Won't).
 

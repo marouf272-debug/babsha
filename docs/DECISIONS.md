@@ -33,6 +33,21 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-25 | 2026-11-08 | Builder reading of D-21: after paying the Jam fine, the roll is a normal roll, so doubles count toward the extra roll and the three doubles rule. | Builder | "Then roll and move" in D-21. Owner may overrule. |
 | D-26 | 2026-11-08 | After being sent to Jam, the turn goes to MANAGE and then END_TURN, with no extra roll. In S1 MANAGE only offers End turn. | Builder | Plan 3.2: END_TURN gives no extra roll to a player in Jam. What MANAGE allows in Jam is Q-08. |
 | D-27 | 2026-11-08 | The engine uses its own Mulberry32 PRNG, stored as one 32-bit number in the game state, with a test pinning its first outputs. | Builder | procedural-gen skill: library RNGs may change between versions, and replays need a stable sequence. |
+| D-28 | 2026-11-08 | Sprint S1 approved. | Owner | Answered in chat. |
+| D-29 | 2026-11-08 | Q-03 closed: a hotel needs 4 houses on every property in the set and costs one more house cost. Selling a hotel returns 50 percent of that cost and leaves 4 houses. | Owner | Classic rule. House supply is unlimited. |
+| D-30 | 2026-11-08 | Q-11 and Q-21 closed: a property can be mortgaged only when its whole color set has no buildings. Same rule in DEBT. | Owner | |
+| D-31 | 2026-11-08 | Q-12 closed: no building anywhere in a set while any property in it is mortgaged. | Owner | Plan S2 invariant. |
+| D-32 | 2026-11-08 | Q-10 closed: unbuilt rent still doubles when the owner holds the full set and one member is mortgaged. The mortgaged member collects nothing. | Owner | |
+| D-33 | 2026-11-08 | Q-13 closed: every active player may bid, including the one who declined. Bids cannot exceed the bidder's cash. | Owner | An auction can never create debt. |
+| D-34 | 2026-11-08 | Q-20 closed: the turn timer is off by default. When on, 30 seconds per decision. Expiry takes the passive choice: decline the buy, fold the bid, end the turn. No timer in DEBT. | Owner | |
+| D-35 | 2026-11-08 | Q-25 closed: mortgaged hubs and utilities still count toward the number owned for rent. The mortgaged one collects nothing. | Owner | |
+| D-36 | 2026-11-08 | Q-14 closed: "board visible or hidden" is an interface toggle that collapses the trade sheet. No engine rule. Built in S4. | Owner | |
+| D-37 | 2026-11-08 | Q-15 closed: a mortgaged property received in a trade is redeemed at the normal cost, principal plus 10 percent. No extra fee at the trade. | Owner | |
+| D-38 | 2026-11-08 | Q-16 closed: in a bankruptcy, buildings are first sold to the bank at 50 percent. Bankrupt to a player: cash and properties pass to that player, mortgages stay. Bankrupt to the bank: mortgages are cleared and the properties are auctioned. | Owner | |
+| D-39 | 2026-11-08 | Q-21 closed: a player in DEBT may trade, sell buildings and mortgage to raise cash. | Owner | |
+| D-40 | 2026-11-08 | Q-17 closed: each deck is shuffled once at game start with the seeded generator. A drawn card goes to the bottom. A held Jam exit card leaves the deck until used, then goes to the bottom. On bankruptcy a held card returns to the bottom of its deck. | Owner | |
+| D-41 | 2026-11-08 | Q-19 closed: card effects and amounts approved as drafted in data/cards.json. A move to a tile then resolves that tile normally. Bangla text still needs native review. | Owner | |
+| D-42 | 2026-11-08 | Q-08 closed: a player in Jam may build, sell, mortgage, redeem and trade as normal. Jam only stops movement. | Owner | |
 
 ## Open questions
 
@@ -41,17 +56,3 @@ Each needs an owner answer. The Blocks column names the sprint that cannot code 
 | ID | Question | Where it came from | Blocks |
 |---|---|---|---|
 | Q-02 | Plan 2.3 says keep the spec ratio of start cash to prices. The plan does not give the spec property prices, so I cannot check the ratio. With the proposal, start cash ৳10,000 is 2.5 times the top price. Is that the ratio you intended? | Plan 2.3 | S3 |
-| Q-03 | Hotel cost and hotel sell back. Proposal: a hotel costs one more house cost; selling a hotel returns 50 percent of the hotel cost and leaves 4 houses. The plan states neither. | FR-06 | S2 |
-| Q-08 | While in Jam, can a player buy, build, mortgage and trade? (Rent: yes, D-22.) | Not in plan | S2 |
-| Q-10 | Does unbuilt rent still double when one property in the full set is mortgaged? | Not in plan | S2 |
-| Q-11 | Mortgage needs an "unimproved" property. Does that mean that property has no buildings, or the whole color set has none? | FR-07 | S2 |
-| Q-12 | Confirm the S2 invariant "no buildings on mortgaged sets" as a rule: no building anywhere in a set while any property in it is mortgaged. | Plan 4.3 | S2 |
-| Q-13 | Auction: may the player who declined bid? May a bid exceed the bidder's cash? How long is the decision timer, and is it on by default? | FR-04 | S2 |
-| Q-14 | FR-08 says trades happen "with the board visible or hidden". What does that mean in practice? | FR-08 | S2 (engine), S4 (UI) |
-| Q-15 | Trading a mortgaged property: "the receiver pays the 10 percent fee on redeeming". Is that the normal redeem cost (principal plus 10 percent), or an extra 10 percent on top? | Plan 2.3 | S2 |
-| Q-16 | Bankruptcy to a player: are buildings sold to the bank first, and does the receiver of mortgaged property follow Q-15? Bankruptcy to the bank: are buildings removed before the auction? | Plan 2.3 | S2 |
-| Q-17 | Decks: shuffled once at game start? Does a drawn card go to the bottom? Does a held Jam card leave the deck until used, and where does it go on bankruptcy? | Not in plan | S2 |
-| Q-19 | Card effects are proposals: collect, pay, collect from each, pay each, move to a tile (clockwise, salary if GO is passed), move back, go to Jam, Jam exit card, repairs per house and hotel. Approve the effect set and the amounts. | Plan 3.8 | S2 |
-| Q-20 | Turn timer (FR-14): default length, and what expiry does outside the buy decision (MANAGE, auction, DEBT). | FR-14, plan 3.2 | S2 |
-| Q-21 | In DEBT, may a player trade to raise cash? Must buildings be sold before mortgaging? | Plan 3.2 | S2 |
-| Q-25 | Do mortgaged hubs and utilities count toward the number owned when working out hub and utility rent? | FR-05 | S2 (no mortgages exist before S2) |

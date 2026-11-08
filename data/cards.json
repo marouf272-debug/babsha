@@ -1,5 +1,5 @@
 {
-  "status": "DRAFT. Card effects and amounts are proposals. Every Bangla card string needs native review (tracked in bn-review.json).",
+  "status": "APPROVED 2026-11-08 (D-41): card effects and amounts. Every Bangla card string still needs native review (tracked in bn-review.json).",
   "effectTypes": {
     "collect": "Bank pays the player {amount}.",
     "pay": "Player pays the bank {amount}.",
