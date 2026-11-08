@@ -224,5 +224,10 @@
   "save.summary": "{players} players ({humans} on this phone), turn {turn}",
   "save.when": "Saved {when}",
   "save.continue": "Continue game",
-  "save.resumed": "Game resumed"
+  "save.resumed": "Game resumed",
+  "setup.startCash": "Start cash",
+  "setup.timer": "Turn timer",
+  "setup.timerOff": "Off",
+  "setup.timerOn": "{seconds} seconds",
+  "timer.label": "{seconds} seconds left to decide"
 }

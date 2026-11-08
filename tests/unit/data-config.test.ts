@@ -30,6 +30,13 @@ describe('config.json economy (plan 2.3 and 2.4)', () => {
   it('FR-07: mortgage at 50 percent, redeem at principal plus 10 percent', () => {
     expect(config.mortgage).toEqual({ rate: 0.5, redeemInterest: 0.1 });
   });
+  it('FR-14, D-34, D-93: settings offer start cash choices around the default, and a 30 second timer that is off by default', () => {
+    expect(config.settings.startCashOptions).toContain(config.startCash);
+    expect([...config.settings.startCashOptions].sort((a, b) => a - b)).toEqual(config.settings.startCashOptions);
+    expect(config.settings.startCashOptions.every((n) => n > 0 && n % 500 === 0)).toBe(true);
+    expect(config.settings.timerSeconds).toBe(30);
+    expect(config.settings.timerDefaultOn).toBe(false);
+  });
   it('FR-04: auction opens at 0 with a minimum raise of 100', () => {
     expect(config.auction).toEqual({ openingBid: 0, minRaise: 100 });
   });

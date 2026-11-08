@@ -57,5 +57,16 @@
   "auction": {
     "openingBid": 0,
     "minRaise": 100
+  },
+  "settings": {
+    "startCashOptions": [
+      5000,
+      7500,
+      10000,
+      15000,
+      20000
+    ],
+    "timerSeconds": 30,
+    "timerDefaultOn": false
   }
 }

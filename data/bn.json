@@ -224,5 +224,10 @@
   "save.summary": "{players} জন খেলোয়াড় (এই ফোনে {humans} জন), {turn} নম্বর পালা",
   "save.when": "সংরক্ষণ: {when}",
   "save.continue": "খেলা চালিয়ে যান",
-  "save.resumed": "খেলা আবার শুরু হলো"
+  "save.resumed": "খেলা আবার শুরু হলো",
+  "setup.startCash": "শুরুর টাকা",
+  "setup.timer": "চালের সময়সীমা",
+  "setup.timerOff": "বন্ধ",
+  "setup.timerOn": "{seconds} সেকেন্ড",
+  "timer.label": "সিদ্ধান্ত নিতে আর {seconds} সেকেন্ড"
 }

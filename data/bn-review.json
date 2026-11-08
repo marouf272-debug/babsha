@@ -226,6 +226,11 @@
     "save.summary": "needs native review",
     "save.when": "needs native review",
     "save.continue": "needs native review",
-    "save.resumed": "needs native review"
+    "save.resumed": "needs native review",
+    "setup.startCash": "needs native review",
+    "setup.timer": "needs native review",
+    "setup.timerOff": "needs native review",
+    "setup.timerOn": "needs native review",
+    "timer.label": "needs native review"
   }
 }

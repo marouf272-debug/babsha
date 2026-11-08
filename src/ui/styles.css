@@ -75,17 +75,20 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .seat { display: flex; align-items: center; gap: 10px; background: var(--paper); border-radius: 12px; padding: 6px 10px; box-shadow: inset 0 0 0 1px var(--paperEdge); }
 .seat-name { flex: 1; font-weight: 700; }
 .seat select { min-height: var(--tap); border-radius: 10px; border: 1px solid var(--paperEdge); padding: 0 8px; background: #fff; }
+.top .timer { display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap); padding: 0 10px; border-radius: 999px; background: rgba(255,255,255,0.14); font-weight: 700; font-variant-numeric: tabular-nums; }
+.top .timer[hidden] { display: none; }
+.top .timer.low { background: #C8102E; }
 .continue { background: var(--paper); border-radius: 14px; padding: 12px 14px; box-shadow: inset 0 0 0 2px var(--boardGreen, #0b6b3a); display: grid; gap: 6px; }
 .continue h2, .continue p { margin: 0; }
 .field-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; font-weight: 700; }
 
 /* Game layout, portrait first (plan 3.5) */
-.game { flex: 1; display: grid; grid-template-rows: auto 1fr auto auto; grid-template-areas: "top" "board" "players" "side"; min-height: 0; position: relative;
+.game { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr auto auto; grid-template-areas: "top" "board" "players" "side"; min-height: 0; position: relative;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .top { grid-area: top; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--boardGreenDark); color: #fff; position: relative; z-index: 11; }
 /* The top strip stays usable above overlays, so the language can change during a hand-off. */
 .top .chip { background: rgba(255,255,255,0.14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); }
-.turn { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-wrap { grid-area: board; position: relative; min-height: 0; }
 canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .side { grid-area: side; display: flex; flex-direction: column; min-height: 0; }

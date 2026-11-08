@@ -42,7 +42,7 @@ const FONT = '"Noto Sans Bengali", system-ui, sans-serif';
 export class App {
   private session: Session | null = null;
   private scene: BoardScene | null = null;
-  private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[] };
+  private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[], startCash: 0, timer: false };
   private panel: 'manage' | 'trade' | null = null;
   // Which management move the manage sheet lists (FR-17 buttons), or all of them in DEBT.
   private mode: 'BUILD' | 'SELL_BUILDING' | 'MORTGAGE' | 'REDEEM' | null = null;
@@ -58,6 +58,8 @@ export class App {
   // FR-19: after a resume with several people on one phone, cover the board until someone taps.
   private resumeCover = false;
   private settings: GameSettings = { timer: false };
+  // FR-14: the running turn timer for the human who must decide now (D-34).
+  private clock: { deadline: number; tick: number } | null = null;
   private playing: Promise<void> = Promise.resolve();
   private readonly els: Record<string, HTMLElement> = {};
   private suggestMemory: AiMemory = emptyMemory();
@@ -71,6 +73,9 @@ export class App {
     // Phones only start audio after a tap.
     if (!o.test) document.addEventListener('pointerdown', () => this.sfx.unlock(), { once: false, passive: true });
     document.documentElement.lang = getLang();
+    const { settings, startCash } = o.engine.rules.config;
+    this.setup.startCash = startCash;
+    this.setup.timer = settings.timerDefaultOn;
     this.renderSetup();
   }
 
@@ -100,6 +105,7 @@ export class App {
   // ---------- setup ----------
 
   private renderSetup(): void {
+    this.stopClock();
     this.scene?.dispose();
     this.scene = null;
     this.session = null;
@@ -115,6 +121,17 @@ export class App {
     for (let n = this.o.engine.rules.config.players.min; n <= this.o.engine.rules.config.players.max; n++) {
       counts.append(h('button', { class: n === this.setup.count ? 'chip on' : 'chip', 'data-testid': `count-${n}`, onclick: () => { this.setup.count = n; this.renderSetup(); } }, num(n)));
     }
+    // FR-14: start cash and the optional turn timer.
+    const { settings } = this.o.engine.rules.config;
+    const cash = h('div', { class: 'counts', role: 'group', 'aria-label': t('setup.startCash') });
+    for (const n of settings.startCashOptions) {
+      cash.append(h('button', { class: n === this.setup.startCash ? 'chip on' : 'chip', 'data-testid': `cash-${n}`, 'aria-pressed': n === this.setup.startCash ? 'true' : 'false', onclick: () => { this.setup.startCash = n; this.renderSetup(); } }, money(n)));
+    }
+    const timer = h('div', { class: 'counts', role: 'group', 'aria-label': t('setup.timer') });
+    for (const on of [false, true]) {
+      timer.append(h('button', { class: on === this.setup.timer ? 'chip on' : 'chip', 'data-testid': `timer-${on ? 'on' : 'off'}`, 'aria-pressed': on === this.setup.timer ? 'true' : 'false', onclick: () => { this.setup.timer = on; this.renderSetup(); } },
+        on ? t('setup.timerOn', { seconds: num(settings.timerSeconds) }) : t('setup.timerOff')));
+    }
     const saved = loadSave(deviceStorage(), this.o.engine);
     root.append(h('div', { class: 'setup' },
       h('div', { class: 'setup-top' }, h('h1', {}, t('app.title')), this.langButton()),
@@ -123,6 +140,10 @@ export class App {
       h('div', { class: 'field-label' }, t('setup.players')),
       counts,
       seats,
+      h('div', { class: 'field-label' }, t('setup.startCash')),
+      cash,
+      h('div', { class: 'field-label' }, t('setup.timer')),
+      timer,
       h('button', { class: 'primary big', 'data-testid': 'start', onclick: () => this.start() }, t('setup.start')),
     ));
     document.title = t('app.title');
@@ -155,8 +176,9 @@ export class App {
   private start(): void {
     const seats = this.setup.seats.slice(0, this.setup.count);
     const seed = this.o.test ? 4242 : (Date.now() & 0x7fffffff);
+    this.settings = { timer: this.setup.timer };
     this.begin(new Session({
-      engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats, seed,
+      engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats, seed, startCash: this.setup.startCash,
       aiDelayMs: this.o.test ? 0 : 650,
       // Computer moves wait for the board animation to finish.
       schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
@@ -244,6 +266,8 @@ export class App {
     }
     this.events = this.events.slice(-600);
     this.confirmBankrupt = false;
+    // Every change is a new decision, so the turn timer starts again (D-34: per decision).
+    this.stopClock();
     // FR-19: save after every change; a finished game is not kept.
     if (state.turn.phase === 'GAME_OVER') clearSave(deviceStorage());
     else if (this.session) writeSave(deviceStorage(), this.session.snapshot(this.settings, this.events));
@@ -284,6 +308,53 @@ export class App {
     this.renderSheet(s);
     this.renderOverlay(s);
     this.scene?.setHighlights(this.tapTargets());
+    this.syncClock(s);
+  }
+
+  // ---------- turn timer (FR-14, D-34, D-52) ----------
+
+  // Runs while a human must make a decision that has a passive choice, once the phone is theirs.
+  private syncClock(s: GameState): void {
+    const session = this.session;
+    const who = session?.actor() ?? null;
+    const live = !!session && this.settings.timer && who !== null && session.isHuman(who) && !this.needsHandoff(s, who) && this.o.engine.passiveAction(s, who) !== null;
+    if (!live) return this.stopClock();
+    if (!this.clock) {
+      const deadline = Date.now() + this.o.engine.rules.config.settings.timerSeconds * 1000;
+      this.clock = { deadline, tick: window.setInterval(() => (Date.now() >= deadline ? this.expireClock() : this.showClock()), 250) };
+    }
+    this.showClock();
+  }
+
+  private stopClock(): void {
+    if (this.clock) window.clearInterval(this.clock.tick);
+    this.clock = null;
+    const el = this.els['top']?.querySelector<HTMLElement>('[data-testid="timer"]');
+    if (el) el.hidden = true;
+  }
+
+  private showClock(): void {
+    const el = this.els['top']?.querySelector<HTMLElement>('[data-testid="timer"]');
+    if (!el || !this.clock) return;
+    const left = Math.max(0, Math.ceil((this.clock.deadline - Date.now()) / 1000));
+    el.hidden = false;
+    el.classList.toggle('low', left <= 5);
+    el.setAttribute('aria-label', t('timer.label', { seconds: num(left) }));
+    el.lastChild!.textContent = num(left);
+  }
+
+  // Time is up: take the passive choice for whoever must decide (decline, fold, end turn, reject).
+  private expireClock(): void {
+    this.stopClock();
+    const session = this.session;
+    const who = session?.actor() ?? null;
+    if (!session || who === null || !session.isHuman(who)) return;
+    const passive = this.o.engine.passiveAction(session.state, who);
+    if (!passive) return;
+    this.panel = null;
+    this.mode = null;
+    this.info = null;
+    this.act(passive);
   }
 
   // Tiles the chosen management move can use right now, for highlighting and tapping.
@@ -325,10 +396,11 @@ export class App {
     const label = s.turn.phase === 'GAME_OVER' ? t('over.title', { name: playerName(s.winner!) }) : t('hud.turn', { name: playerName(s.turn.active) });
     this.els['top']!.replaceChildren(
       h('div', { class: 'turn', 'data-testid': 'turn' }, label),
+      ...(this.settings.timer ? [h('div', { class: 'timer', 'data-testid': 'timer', role: 'timer', hidden: true }, icon('timer', 18), h('span', {}, ''))] : []),
       this.langButton(),
       this.soundButton(),
       this.logButton(),
-      h('button', { class: 'chip', 'data-testid': 'new-game', onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, t('menu.newGame')),
+      h('button', { class: 'chip icon', 'data-testid': 'new-game', 'aria-label': t('menu.newGame'), title: t('menu.newGame'), onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, icon('newGame', 20)),
     );
   }
 

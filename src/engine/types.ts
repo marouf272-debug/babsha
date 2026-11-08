@@ -54,6 +54,8 @@ export interface Config {
   building: { maxHouses: number; sellBackRate: number };
   mortgage: { rate: number; redeemInterest: number };
   auction: { openingBid: number; minRaise: number };
+  // FR-14 game settings choices (D-34, D-93).
+  settings: { startCashOptions: number[]; timerSeconds: number; timerDefaultOn: boolean };
 }
 
 export interface Rules {
