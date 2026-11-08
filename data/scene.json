@@ -1,33 +1,120 @@
 {
-  "status": "S4 greybox. Flat functional colors only (CLAUDE.md art rules); the visual style comes in S5.",
+  "status": "S5 style (docs/style-guide.md). Palette tokens are mirrored as CSS variables in src/ui/styles.css.",
   "camera": {
     "active": "tabletop",
     "presets": {
-      "tabletop": { "azimuthDeg": 0, "elevationDeg": 58, "zoom": 1.0 },
-      "isometric": { "azimuthDeg": 45, "elevationDeg": 35.264, "zoom": 1.0 }
+      "tabletop": {
+        "azimuthDeg": 0,
+        "elevationDeg": 58,
+        "zoom": 1.0
+      },
+      "tilted45": {
+        "azimuthDeg": 0,
+        "elevationDeg": 45,
+        "zoom": 1.0
+      },
+      "isometric": {
+        "azimuthDeg": 45,
+        "elevationDeg": 35.264,
+        "zoom": 1.0
+      }
     },
-    "marginTiles": 0.25
+    "marginTiles": 0.1
   },
-  "board": { "tileWidth": 1, "tileDepth": 1.6, "tileHeight": 0.12, "baseHeight": 0.2 },
-  "render": { "maxPixelRatio": 1.5 },
-  "animation": { "hopMs": 130, "diceMs": 450 },
+  "board": {
+    "tileWidth": 1,
+    "tileDepth": 1.6,
+    "tileHeight": 0.12,
+    "baseHeight": 0.2
+  },
+  "render": {
+    "maxPixelRatio": 1.5
+  },
+  "animation": {
+    "hopMs": 130,
+    "diceMs": 450
+  },
   "colors": {
-    "background": "#d8d8d4",
-    "board": "#b9b9b4",
-    "tile": "#efefeb",
-    "tileText": "#202020",
-    "house": "#f8f8f8",
-    "hotel": "#505050",
-    "dice": "#fafafa",
-    "pip": "#202020",
-    "groups": {
-      "brown": "#8b5a2b", "light_blue": "#8fcbef", "pink": "#e58fb5", "orange": "#f29b38",
-      "red": "#d9413a", "yellow": "#f2d230", "green": "#3f9e4d", "dark_blue": "#2b4b9b"
+    "palette": {
+      "ink": "#1E1B18",
+      "paper": "#FBF4E4",
+      "paperEdge": "#E6D9BC",
+      "boardGreen": "#0E6B47",
+      "boardGreenDark": "#094C33",
+      "road": "#3B3F45",
+      "roadLine": "#F3E2A9",
+      "water": "#3E9CC4",
+      "waterLight": "#8FD0E6",
+      "leaf": "#3E9B48",
+      "leafDark": "#2A7335",
+      "concrete": "#DCD3C3",
+      "concreteShade": "#B9AE9A",
+      "glass": "#7FB8D3",
+      "tinRoof": "#9AA6AE",
+      "terracotta": "#C35F3A",
+      "rickRed": "#E0262F",
+      "rickPink": "#EC3E8C",
+      "rickYellow": "#F7C631",
+      "rickTeal": "#12A5B5",
+      "rickBlue": "#2443A0"
     },
-    "players": ["#d93a3a", "#3a6fd9", "#34a853", "#e6c229", "#8e4ad9", "#2bb5c7"]
+    "background": "#F5EEDF",
+    "board": "#0E6B47",
+    "boardRim": "#094C33",
+    "tile": "#FBF4E4",
+    "tileEdge": "#E6D9BC",
+    "tileText": "#1E1B18",
+    "house": "#FFFFFF",
+    "houseRoof": "#E0262F",
+    "hotel": "#C35F3A",
+    "dice": "#FFFFFF",
+    "pip": "#1E1B18",
+    "shadow": "#000000",
+    "groups": {
+      "brown": "#8A5232",
+      "light_blue": "#67BFE6",
+      "pink": "#EC3E8C",
+      "orange": "#EE7D2B",
+      "red": "#E0262F",
+      "yellow": "#F7C631",
+      "green": "#2E9E4F",
+      "dark_blue": "#2443A0"
+    },
+    "players": [
+      "#E0262F",
+      "#2E6FE0",
+      "#2E9E4F",
+      "#F2B91F",
+      "#8A3FD1",
+      "#12A5B5"
+    ]
   },
   "groupSymbols": {
-    "brown": "●", "light_blue": "▲", "pink": "■", "orange": "◆",
-    "red": "★", "yellow": "✚", "green": "♥", "dark_blue": "⬟"
+    "brown": "●",
+    "light_blue": "▲",
+    "pink": "■",
+    "orange": "◆",
+    "red": "★",
+    "yellow": "✚",
+    "green": "♥",
+    "dark_blue": "⬟"
+  },
+  "lighting": {
+    "skyColor": "#FFF4E0",
+    "groundColor": "#6B5B45",
+    "hemiIntensity": 1.7,
+    "sunColor": "#FFE7C2",
+    "sunIntensity": 2.2,
+    "sunPosition": [
+      -5,
+      11,
+      8
+    ],
+    "shadowOpacity": 0.22
+  },
+  "dressing": {
+    "textShare": 0.45,
+    "maxHeight": 1.3,
+    "houseLane": 0.18
   }
 }

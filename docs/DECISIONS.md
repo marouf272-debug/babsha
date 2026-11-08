@@ -78,6 +78,9 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-70 | 2026-11-08 | Board look stays the tilted 3D Dhaka city from the plan. The references guide readability and the interface, not the board view. | Owner | Plan 3.6 and 3.7. S5 still compares two camera presets. |
 | D-71 | 2026-11-08 | From the style references take: big readable tiles, bold buttons and dialogs with colored headers, player cards in a 2 by 2 grid around the dice, and tapping highlighted tiles on the board for build, sell, mortgage and redeem. Principles only, not the source app's look. Notes in docs/reference/README.md. | Owner | Plan 4.4. |
 | D-72 | 2026-11-08 | Gap found: FR-17 asks for a fixed action bar with separate Build, Sell, Mortgage, Redeem and Trade buttons. S4 merged the first four into one button. Fixed at the start of S5. | Builder | Spotted while studying the references. |
+| D-73 | 2026-11-08 | S5 adds a third camera preset, tilted45 (45 degrees), between tabletop and isometric, so the owner can judge readability against how 3D the city looks. | Builder | Plan 3.6 asks for at least two presets. |
+| D-74 | 2026-11-08 | Building signs are always Bangla; tile labels follow the language toggle. | Builder | Plan 3.7 (Bangla script on all signage) and FR-15 (tile names in both languages). |
+| D-75 | 2026-11-08 | Small Dhaka anchors (rickshaw, nouka) are drawn about 1.4 times larger than true scale, and houses sit in a lane at the tile's inner edge, so nothing covers tile text. | Builder | S5 screenshots showed houses over names and anchors too small to read at phone scale. |
 
 ## Open questions
 
