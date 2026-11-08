@@ -27,20 +27,24 @@ async function clickAction(page: Page, a: Action): Promise<boolean> {
 // Plays one human decision through the interface, using the move the Medium AI suggests.
 export async function playOneStep(page: Page): Promise<'over' | 'acted' | 'waiting'> {
   if (await visible(page, 'game-over')) return 'over';
-  if (await visible(page, 'card')) { await page.getByTestId('card-ok').click(); return 'acted'; }
-  if (await visible(page, 'handoff-trade')) { await page.getByTestId('reveal-trade').click(); return 'acted'; }
+  // A computer player's card closes by itself, so it may vanish before the click lands.
+  if (await visible(page, 'card')) { await page.getByTestId('card-ok').click({ timeout: 1000 }).catch(() => {}); return 'acted'; }
+  if (await visible(page, 'handoff-trade')) { await page.getByTestId('reveal-trade').click({ timeout: 1000 }).catch(() => {}); return 'acted'; }
   const a = await page.evaluate(() => (window as unknown as { __babsha: { app: { suggest(): unknown } } }).__babsha.app.suggest()) as Action | null;
   if (!a) return 'waiting';
   switch (a.type) {
-    case 'BUILD': case 'SELL_BUILDING': case 'MORTGAGE': case 'REDEEM':
-      if (!(await visible(page, 'manage')) && !(await visible(page, 'debt'))) await page.getByTestId('open-manage').click();
+    case 'BUILD': case 'SELL_BUILDING': case 'MORTGAGE': case 'REDEEM': {
+      const ids: Record<string, string> = { BUILD: 'act-build', SELL_BUILDING: 'act-sell', MORTGAGE: 'act-mortgage', REDEEM: 'act-redeem' };
+      const open = await page.locator('.tool.on').getAttribute('data-testid').catch(() => null);
+      if (!(await visible(page, 'debt')) && open !== ids[a.type]) await page.getByTestId(ids[a.type]!).click();
       break;
+    }
     case 'DECLARE_BANKRUPTCY':
       await page.getByTestId('bankrupt').click();
       break;
     case 'PROPOSE_TRADE': {
       const o = a.offer!;
-      await page.getByTestId('open-trade').click();
+      await page.getByTestId('act-trade').click();
       await page.getByTestId(`trade-to-${o.to}`).click();
       for (const id of o.giveTiles) await page.getByTestId(`trade-give-${id}`).check();
       for (const id of o.getTiles) await page.getByTestId(`trade-get-${id}`).check();
@@ -104,11 +108,13 @@ export async function runSteps(page: Page, max: number): Promise<{ status: 'over
       if (press('card-ok') || press('reveal-trade')) continue;
       const a = app.suggest();
       if (!a) return { status: 'stuck' as const, steps: i, detail: 'no suggestion' };
-      if (['BUILD', 'SELL_BUILDING', 'MORTGAGE', 'REDEEM'].includes(a.type) && !shown('manage')) press('open-manage');
+      const opener: Record<string, string> = { BUILD: 'act-build', SELL_BUILDING: 'act-sell', MORTGAGE: 'act-mortgage', REDEEM: 'act-redeem' };
+      const open = document.querySelector('.tool.on')?.getAttribute('data-testid');
+      if (opener[a.type] && !shown('debt') && open !== opener[a.type]) press(opener[a.type]!);
       if (a.type === 'DECLARE_BANKRUPTCY') press('bankrupt');
       if (a.type === 'PROPOSE_TRADE') {
         const o = a.offer!;
-        press('open-trade');
+        press('act-trade');
         press(`trade-to-${o.to}`);
         const tick = (id: string) => { const b = shown(id) as HTMLInputElement | null; if (b && !b.checked) { b.checked = true; b.dispatchEvent(new Event('change')); } };
         o.giveTiles.forEach((id) => tick(`trade-give-${id}`));

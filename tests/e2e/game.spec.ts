@@ -51,6 +51,21 @@ test.describe('S4 interface on a phone', () => {
     expect(bn.filter((x) => /[A-Za-z]/.test(x) && x !== 'English')).toEqual([]);
   });
 
+  test('FR-17: a fixed action bar offers Build, Sell, Mortgage, Redeem and Trade; Build lists only build moves', async ({ page }) => {
+    await startGame(page, ['human', 'human']);
+    for (const id of ['act-build', 'act-sell', 'act-mortgage', 'act-redeem', 'act-trade']) await expect(page.getByTestId(id)).toBeVisible();
+    // Play until the active player can build, then use the Build button.
+    for (let i = 0; i < 3000; i++) {
+      if (await page.getByTestId('act-build').isEnabled()) break;
+      await runSteps(page, 1);
+    }
+    await expect(page.getByTestId('act-build')).toBeEnabled();
+    await page.getByTestId('act-build').click();
+    const types = await page.locator('[data-testid="manage"] [data-action]').evaluateAll((els) => els.map((e) => JSON.parse((e as HTMLElement).dataset['action']!).type as string));
+    expect(types.length).toBeGreaterThan(0);
+    expect(new Set(types)).toEqual(new Set(['BUILD']));
+  });
+
   test('FR-13: a game with one human against a computer player runs the computer turns', async ({ page }) => {
     await startGame(page, ['human', 'hard']);
     for (let i = 0; i < 60; i++) await playOneStep(page);

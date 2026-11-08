@@ -108,7 +108,6 @@
   "action.roll": "Roll",
   "action.payFine": "Pay {amount} fine",
   "action.useCard": "Use Jam card",
-  "action.manage": "Build and mortgage",
   "action.trade": "Trade",
   "action.endTurn": "End turn",
   "action.ok": "OK",
@@ -197,5 +196,9 @@
   "ev.turnPassed": "{name}'s turn",
   "ev.gameOver": "{name} wins!",
   "menu.confirmNew": "Leave this game and start a new one?",
-  "trade.choose": "Choose a player"
+  "trade.choose": "Choose a player",
+  "action.build": "Build",
+  "action.sell": "Sell",
+  "action.mortgage": "Mortgage",
+  "action.redeem": "Redeem"
 }

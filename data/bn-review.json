@@ -110,7 +110,6 @@
     "action.roll": "needs native review",
     "action.payFine": "needs native review",
     "action.useCard": "needs native review",
-    "action.manage": "needs native review",
     "action.trade": "needs native review",
     "action.endTurn": "needs native review",
     "action.ok": "needs native review",
@@ -199,6 +198,10 @@
     "ev.turnPassed": "needs native review",
     "ev.gameOver": "needs native review",
     "menu.confirmNew": "needs native review",
-    "trade.choose": "needs native review"
+    "trade.choose": "needs native review",
+    "action.build": "needs native review",
+    "action.sell": "needs native review",
+    "action.mortgage": "needs native review",
+    "action.redeem": "needs native review"
   }
 }

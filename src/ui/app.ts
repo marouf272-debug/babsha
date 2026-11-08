@@ -37,6 +37,8 @@ export class App {
   private scene: BoardScene | null = null;
   private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[] };
   private panel: 'manage' | 'trade' | null = null;
+  // Which management move the manage sheet lists (FR-17 buttons), or all of them in DEBT.
+  private mode: 'BUILD' | 'SELL_BUILDING' | 'MORTGAGE' | 'REDEEM' | null = null;
   private draft: TradeDraft = emptyDraft();
   private log: string[] = [];
   private cards: Array<{ player: number; deck: 'lucky' | 'dohs'; cardId: string }> = [];
@@ -209,25 +211,42 @@ export class App {
 
   // ---------- action bar ----------
 
+  // FR-17: a fixed bar of Build, Sell, Mortgage, Redeem and Trade, plus the move of the moment
+  // (Roll, Jam options or End turn) above it.
   private renderActions(s: GameState): void {
     const session = this.session!;
     const bar = this.els['actions']!;
     const who = session.actor();
-    if (who === null || s.turn.phase === 'GAME_OVER') return bar.replaceChildren();
-    if (!session.isHuman(who)) return bar.replaceChildren(h('div', { class: 'thinking' }, t('hud.thinking', { name: playerName(who) })));
-    const legal = session.legalFor(who);
+    const human = who !== null && session.isHuman(who) && s.turn.phase !== 'GAME_OVER';
+    const legal = human ? session.legalFor(who) : [];
     const has = (type: Action['type']) => legal.some((a) => a.type === type);
-    const btns: HTMLElement[] = [];
-    if (s.turn.phase === 'ROLL') {
-      btns.push(this.actButton(t('action.roll'), { type: 'ROLL' }, 'primary'));
-      if (has('PAY_JAM_FINE')) btns.push(this.actButton(t('action.payFine', { amount: money(this.o.engine.rules.config.jam.fine) }), { type: 'PAY_JAM_FINE' }));
-      if (has('USE_JAM_CARD')) btns.push(this.actButton(t('action.useCard'), { type: 'USE_JAM_CARD' }));
-    } else if (s.turn.phase === 'MANAGE' && !s.trade) {
-      btns.push(h('button', { 'data-testid': 'open-manage', onclick: () => { this.panel = this.panel === 'manage' ? null : 'manage'; this.render(); } }, t('action.manage')));
-      btns.push(h('button', { 'data-testid': 'open-trade', onclick: () => { this.panel = this.panel === 'trade' ? null : 'trade'; this.draft = emptyDraft(); this.render(); } }, t('action.trade')));
-      btns.push(this.actButton(t('action.endTurn'), { type: 'END_TURN' }, 'primary'));
+    const main: HTMLElement[] = [];
+    if (who !== null && !session.isHuman(who) && s.turn.phase !== 'GAME_OVER') main.push(h('div', { class: 'thinking' }, t('hud.thinking', { name: playerName(who) })));
+    if (human && s.turn.phase === 'ROLL') {
+      main.push(this.actButton(t('action.roll'), { type: 'ROLL' }, 'primary'));
+      if (has('PAY_JAM_FINE')) main.push(this.actButton(t('action.payFine', { amount: money(this.o.engine.rules.config.jam.fine) }), { type: 'PAY_JAM_FINE' }));
+      if (has('USE_JAM_CARD')) main.push(this.actButton(t('action.useCard'), { type: 'USE_JAM_CARD' }));
+    } else if (human && s.turn.phase === 'MANAGE' && !s.trade) {
+      main.push(this.actButton(t('action.endTurn'), { type: 'END_TURN' }, 'primary'));
     }
-    bar.replaceChildren(...btns);
+    const manage = human && s.turn.phase === 'MANAGE' && !s.trade;
+    const tool = (testid: string, label: string, mode: App['mode']) => h('button', {
+      class: `tool${this.panel === 'manage' && this.mode === mode ? ' on' : ''}`, 'data-testid': testid,
+      disabled: !manage || !has(mode!),
+      onclick: () => { const same = this.panel === 'manage' && this.mode === mode; this.panel = same ? null : 'manage'; this.mode = same ? null : mode; this.render(); },
+    }, label);
+    const others = s.players.some((p, i) => i !== who && !p.bankrupt);
+    const tools = h('div', { class: 'tools' },
+      tool('act-build', t('action.build'), 'BUILD'),
+      tool('act-sell', t('action.sell'), 'SELL_BUILDING'),
+      tool('act-mortgage', t('action.mortgage'), 'MORTGAGE'),
+      tool('act-redeem', t('action.redeem'), 'REDEEM'),
+      h('button', {
+        class: `tool trade${this.panel === 'trade' ? ' on' : ''}`, 'data-testid': 'act-trade', disabled: !manage || !others,
+        onclick: () => { this.panel = this.panel === 'trade' ? null : 'trade'; this.draft = emptyDraft(); this.render(); },
+      }, t('action.trade')),
+    );
+    bar.replaceChildren(h('div', { class: 'main-row' }, ...main), tools);
   }
 
   private actButton(label: string, action: Action, cls = '', disabled = false): HTMLElement {
@@ -327,10 +346,11 @@ export class App {
   private manageSheet(s: GameState, who: number, closable: boolean): HTMLElement {
     const legal = this.session!.legalFor(who);
     const mine = this.o.engine.rules.tiles.filter((x) => s.properties[x.id]?.owner === who);
-    const rows = mine.map((tile) => {
+    const rows = mine.filter((tile) => !closable || this.mode === null || legal.some((a) => a.type === this.mode && 'tileId' in a && a.tileId === tile.id)).map((tile) => {
       const prop = s.properties[tile.id]!;
       const q = this.o.engine.quote(s, tile.id);
-      const can = (type: Action['type']) => legal.some((a) => a.type === type && 'tileId' in a && a.tileId === tile.id);
+      const allowed = (type: Action['type']) => !closable || this.mode === null || this.mode === type;
+      const can = (type: Action['type']) => allowed(type) && legal.some((a) => a.type === type && 'tileId' in a && a.tileId === tile.id);
       const level = prop.mortgaged ? t('manage.mortgaged') : tile.type === 'property' ? t(`deed.level.${Math.min(prop.houses, 5)}`) : '';
       const btns: HTMLElement[] = [];
       if (can('BUILD')) btns.push(this.actButton(t('manage.build', { amount: money(q.buildCost!) }), { type: 'BUILD', tileId: tile.id }));
@@ -344,7 +364,7 @@ export class App {
     return h('div', { 'data-testid': 'manage' },
       h('h3', {}, t('manage.title', { name: playerName(who) })),
       rows.length ? h('div', { class: 'props' }, ...rows) : h('div', { class: 'note' }, t('manage.none')),
-      closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.render(); } }, t('action.close'))) : null,
+      closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.mode = null; this.render(); } }, t('action.close'))) : null,
     );
   }
 

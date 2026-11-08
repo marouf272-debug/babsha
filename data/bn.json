@@ -108,7 +108,6 @@
   "action.roll": "ছক্কা চালুন",
   "action.payFine": "{amount} জরিমানা দিন",
   "action.useCard": "জ্যাম কার্ড ব্যবহার করুন",
-  "action.manage": "বাড়ি ও বন্ধক",
   "action.trade": "লেনদেন",
   "action.endTurn": "পালা শেষ",
   "action.ok": "ঠিক আছে",
@@ -197,5 +196,9 @@
   "ev.turnPassed": "{name}-এর পালা",
   "ev.gameOver": "{name} জিতেছে!",
   "menu.confirmNew": "এই খেলা ছেড়ে নতুন খেলা শুরু করবেন?",
-  "trade.choose": "একজন খেলোয়াড় বেছে নিন"
+  "trade.choose": "একজন খেলোয়াড় বেছে নিন",
+  "action.build": "বানান",
+  "action.sell": "বিক্রি",
+  "action.mortgage": "বন্ধক",
+  "action.redeem": "ছাড়ান"
 }
