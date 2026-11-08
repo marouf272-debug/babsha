@@ -1,177 +1,307 @@
-// Low-poly building kit (style guide sections 4 and 5): flat-shaded boxes on plinths, shared
-// window texture, Bangla signs on canvas, blob shadows. Everything is made in code.
+// Low-poly parts kit (style guide 4, 5, 7). Every part is added to a Scenery builder and merged.
+// Positions are in a tile frame: a runs across the tile, b points to the board centre.
 
 import * as THREE from 'three';
+import type { Scenery, TileFrame } from './scenery';
 
-export interface KitContext {
-  palette: Record<string, string>;
-  shadowOpacity: number;
-  font: string;
-  // Direction the camera looks from (unit vector on the ground plane), so signs face it.
-  cameraDir: THREE.Vector2;
-}
+export type { KitContext, TileFrame } from './scenery';
 
-// A tile's ground frame: `along` runs across the tile, `inward` points to the board centre.
-export interface TileFrame {
-  center: THREE.Vector3; // on the tile top surface
-  along: THREE.Vector2;
-  inward: THREE.Vector2;
-  width: number; // along
-  depth: number; // inward
-}
+const X = (f: TileFrame) => Math.abs(f.along.x) > 0.5; // tile frame `along` runs along world x
 
-const materials = new Map<string, THREE.MeshLambertMaterial>();
-export function flat(color: string): THREE.MeshLambertMaterial {
-  let m = materials.get(color);
-  if (!m) {
-    m = new THREE.MeshLambertMaterial({ color, flatShading: true });
-    materials.set(color, m);
-  }
-  return m;
-}
-
-let windowTex: THREE.CanvasTexture | null = null;
-function windowTexture(): THREE.CanvasTexture {
-  if (windowTex) return windowTex;
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#ffffff';
-  g.fillRect(0, 0, 64, 64);
-  g.fillStyle = 'rgba(30,40,60,0.55)';
-  for (let y = 6; y < 64; y += 16) for (let x = 6; x < 64; x += 16) g.fillRect(x, y, 9, 8);
-  windowTex = new THREE.CanvasTexture(c);
-  windowTex.colorSpace = THREE.SRGBColorSpace;
-  windowTex.wrapS = windowTex.wrapT = THREE.RepeatWrapping;
-  return windowTex;
-}
-
-// World position for a point given in the tile frame (a across, b toward the centre, y up).
 export function at(f: TileFrame, a: number, b: number, y = 0): THREE.Vector3 {
   return new THREE.Vector3(f.center.x + f.along.x * a + f.inward.x * b, f.center.y + y, f.center.z + f.along.y * a + f.inward.y * b);
 }
 
-// Box sized in the tile frame (wa across, db toward the centre), standing on the tile.
-export function box(f: TileFrame, a: number, b: number, wa: number, db: number, h: number, mat: THREE.Material, y = 0): THREE.Mesh {
-  const alongX = Math.abs(f.along.x) > 0.5;
-  const geo = new THREE.BoxGeometry(alongX ? wa : db, h, alongX ? db : wa);
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.copy(at(f, a, b, y + h / 2));
-  return mesh;
+// World size for a box sized in the frame (wa across, db toward the centre).
+const size = (f: TileFrame, wa: number, db: number): [number, number] => (X(f) ? [wa, db] : [db, wa]);
+// Rotation that lays a part's local x axis along the frame's `along` (or `inward` when cross).
+const yaw = (f: TileFrame, cross = false) => new THREE.Euler(0, (X(f) ? 0 : Math.PI / 2) + (cross ? Math.PI / 2 : 0), 0);
+
+export function box(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number, h: number, color: string, y = 0): void {
+  const [sx, sz] = size(f, wa, db);
+  S.solid(new THREE.BoxGeometry(sx, h, sz), color, at(f, a, b, y + h / 2));
 }
 
-// A building with a plinth, window texture on its walls and a roof color.
-export function building(ctx: KitContext, f: TileFrame, a: number, b: number, wa: number, db: number, h: number, wall: string, roof: string, floors: number): THREE.Group {
-  const g = new THREE.Group();
-  g.add(box(f, a, b, wa + 0.08, db + 0.08, 0.05, flat(ctx.palette['concreteShade']!)));
-  const tex = windowTexture().clone();
-  tex.repeat.set(Math.max(1, Math.round(wa * 4)), floors / 4);
-  tex.needsUpdate = true;
-  const walls = new THREE.MeshLambertMaterial({ color: wall, map: tex, flatShading: true });
-  const top = flat(roof);
-  const body = box(f, a, b, wa, db, h, walls, 0.05);
-  body.material = [walls, walls, top, top, walls, walls];
-  g.add(body);
-  g.add(blob(ctx, f, a, b, wa + 0.25, db + 0.25));
-  return g;
+export function cyl(S: Scenery, f: TileFrame, a: number, b: number, r: number, h: number, color: string, y = 0, seg = 8, rTop = r): void {
+  S.solid(new THREE.CylinderGeometry(rTop, r, h, seg), color, at(f, a, b, y + h / 2));
 }
 
-export function blob(ctx: KitContext, f: TileFrame, a: number, b: number, wa: number, db: number): THREE.Mesh {
-  const alongX = Math.abs(f.along.x) > 0.5;
-  const m = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16), new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: ctx.shadowOpacity, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2;
-  m.scale.set(alongX ? wa : db, alongX ? db : wa, 1);
-  m.position.copy(at(f, a, b, 0.004));
-  return m;
+export function shadow(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
+  const [sx, sz] = size(f, wa, db);
+  S.shadow(at(f, a, b), sx, sz);
 }
 
-export function tree(ctx: KitContext, f: TileFrame, a: number, b: number, s = 1): THREE.Group {
-  const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.025 * s, 0.03 * s, 0.14 * s, 5), flat(ctx.palette['terracotta']!));
-  trunk.position.copy(at(f, a, b, 0.07 * s));
-  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 * s, 0), flat(ctx.palette['leaf']!));
-  crown.position.copy(at(f, a, b, 0.2 * s));
-  g.add(trunk, crown, blob(ctx, f, a, b, 0.22 * s, 0.22 * s));
-  return g;
+// Building with a plinth, window texture on its walls, a flat roof in `roof`.
+export function building(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number, h: number, wall: string, roof: string): void {
+  box(S, f, a, b, wa + 0.07, db + 0.07, 0.04, 'concreteShade');
+  const [sx, sz] = size(f, wa, db);
+  S.windowed(new THREE.BoxGeometry(sx, h, sz), wall, at(f, a, b, 0.04 + h / 2), Math.max(1, Math.round(wa * 5)), Math.max(1, Math.round(h * 6)));
+  box(S, f, a, b, wa + 0.02, db + 0.02, 0.03, roof, 0.04 + h);
+  shadow(S, f, a, b, wa + 0.12, db + 0.12);
 }
 
-export function water(ctx: KitContext, f: TileFrame, a: number, b: number, wa: number, db: number): THREE.Mesh {
-  return box(f, a, b, wa, db, 0.015, flat(ctx.palette['water']!), 0.002);
+// Small house with a pitched roof (old town, residential).
+export function gableHouse(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number, h: number, wall: string, roof: string): void {
+  box(S, f, a, b, wa, db, h, wall);
+  const [sx, sz] = size(f, wa, db);
+  const r = new THREE.CylinderGeometry(0.5, 0.5, 1, 3);
+  S.solid(r, roof, at(f, a, b, h + 0.06), new THREE.Euler(X(f) ? 0 : 0, X(f) ? 0 : Math.PI / 2, Math.PI / 2), new THREE.Vector3(0.14, sx > sz ? sx + 0.02 : sz + 0.02, (X(f) ? sz : sx) * 0.95));
+  shadow(S, f, a, b, wa + 0.1, db + 0.1);
 }
 
-// Scales a group about a ground point, so small anchors can be enlarged in place.
-export function scaled(g: THREE.Group, centre: THREE.Vector3, s: number): THREE.Group {
-  const outer = new THREE.Group();
-  outer.position.copy(centre);
-  g.position.sub(centre);
-  outer.add(g);
-  outer.scale.setScalar(s);
-  return outer;
+export function tree(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  cyl(S, f, a, b, 0.03 * s, 0.14 * s, 'terracotta', 0, 5, 0.025 * s);
+  S.solid(new THREE.IcosahedronGeometry(0.13 * s, 0), 'leaf', at(f, a, b, 0.22 * s));
+  shadow(S, f, a, b, 0.24 * s, 0.24 * s);
 }
 
-// Nouka (country boat): a slim hull with a small curved shade.
-export function nouka(ctx: KitContext, f: TileFrame, a: number, b: number): THREE.Group {
-  const g = new THREE.Group();
-  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.02, 0.36, 6, 1), flat(ctx.palette['terracotta']!));
-  hull.rotation.z = Math.PI / 2;
-  if (Math.abs(f.along.x) < 0.5) hull.rotation.set(Math.PI / 2, 0, 0);
-  hull.position.copy(at(f, a, b, 0.04));
-  const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.12, 6, 1, false, 0, Math.PI), flat(ctx.palette['rickYellow']!));
-  shade.rotation.z = Math.PI / 2;
-  if (Math.abs(f.along.x) < 0.5) shade.rotation.set(Math.PI / 2, 0, 0);
-  shade.position.copy(at(f, a, b, 0.08));
-  g.add(hull, shade);
-  return g;
+// Coconut palm: tall thin trunk, drooping leaf cone.
+export function palm(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  cyl(S, f, a, b, 0.025 * s, 0.42 * s, 'terracotta', 0, 5, 0.018 * s);
+  S.solid(new THREE.ConeGeometry(0.17 * s, 0.1 * s, 6), 'leafDark', at(f, a, b, 0.45 * s), new THREE.Euler(Math.PI, 0, 0));
+  shadow(S, f, a, b, 0.2 * s, 0.2 * s);
 }
 
-// Cycle rickshaw: three wheels, a seat, and a hood in rickshaw-art pink and yellow.
-export function rickshaw(ctx: KitContext, f: TileFrame, a: number, b: number): THREE.Group {
-  const g = new THREE.Group();
-  const p = ctx.palette;
-  const wheel = (wa: number, wb: number) => {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.015, 8), flat(p['ink']!));
-    w.rotation.x = Math.PI / 2;
-    if (Math.abs(f.along.x) > 0.5) w.rotation.set(0, 0, Math.PI / 2);
-    w.position.copy(at(f, a + wa, b + wb, 0.05));
-    return w;
-  };
-  g.add(wheel(-0.07, 0.05), wheel(0.07, 0.05), wheel(0, -0.13));
-  g.add(box(f, a, b + 0.04, 0.16, 0.1, 0.05, flat(p['rickBlue']!), 0.07));
-  const hood = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.16, 8, 1, false, 0, Math.PI), flat(p['rickPink']!));
-  hood.rotation.set(0, 0, 0);
-  if (Math.abs(f.along.x) > 0.5) hood.rotation.y = Math.PI / 2;
-  hood.position.copy(at(f, a, b + 0.06, 0.13));
-  g.add(hood);
-  g.add(box(f, a, b + 0.06, 0.17, 0.02, 0.02, flat(p['rickYellow']!), 0.13));
-  g.add(blob(ctx, f, a, b, 0.24, 0.3));
-  return g;
+export function water(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
+  box(S, f, a, b, wa, db, 0.014, 'water', 0.002);
 }
 
-// A Bangla sign board on the building face that looks most toward the camera.
-export function sign(ctx: KitContext, f: TileFrame, a: number, b: number, wa: number, db: number, y: number, text: string, bg: string): THREE.Mesh {
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 64;
-  const g = c.getContext('2d')!;
-  g.fillStyle = bg;
-  g.fillRect(0, 0, 256, 64);
-  g.fillStyle = '#ffffff';
-  g.font = `700 38px ${ctx.font}`;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, 128, 34, 240);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const alongX = Math.abs(f.along.x) > 0.5;
-  const sizeX = alongX ? wa : db;
-  const sizeZ = alongX ? db : wa;
+export function road(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
+  box(S, f, a, b, wa, db, 0.01, 'road', 0.002);
+  const [la, lb] = X(f) === wa > db ? [wa * 0.9, 0.012] : [0.012, db * 0.9];
+  box(S, f, a, b, wa > db ? la : 0.012, wa > db ? 0.012 : lb, 0.012, 'roadLine', 0.004);
+}
+
+function wheel(S: Scenery, f: TileFrame, a: number, b: number, r: number, cross: boolean): void {
+  // Wheel axis points across the vehicle's direction of travel.
+  const e = yaw(f, cross);
+  S.solid(new THREE.CylinderGeometry(r, r, 0.02, 8), 'ink', at(f, a, b, r), new THREE.Euler(Math.PI / 2, e.y, 0, 'YXZ'));
+}
+
+// Cycle rickshaw, travelling across the tile: hood in rickshaw-art pink with a yellow trim.
+export function rickshaw(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  wheel(S, f, a - 0.08 * s, b - 0.06 * s, 0.05 * s, false);
+  wheel(S, f, a - 0.08 * s, b + 0.06 * s, 0.05 * s, false);
+  wheel(S, f, a + 0.14 * s, b, 0.05 * s, false);
+  box(S, f, a - 0.06 * s, b, 0.1 * s, 0.16 * s, 0.05 * s, 'rickBlue', 0.07 * s);
+  box(S, f, a + 0.06 * s, b, 0.14 * s, 0.02 * s, 0.02 * s, 'ink', 0.08 * s);
+  const hood = new THREE.CylinderGeometry(0.085 * s, 0.085 * s, 0.17 * s, 8, 1, false, 0, Math.PI);
+  S.solid(hood, 'rickPink', at(f, a - 0.07 * s, b, 0.13 * s), new THREE.Euler(Math.PI / 2, yaw(f).y + Math.PI / 2, 0, 'YXZ'));
+  box(S, f, a - 0.07 * s, b, 0.02 * s, 0.18 * s, 0.02 * s, 'rickYellow', 0.14 * s);
+  shadow(S, f, a, b, 0.32 * s, 0.24 * s);
+}
+
+// CNG auto-rickshaw: green body, black canopy, three wheels.
+export function cng(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  wheel(S, f, a - 0.06 * s, b - 0.06 * s, 0.035 * s, false);
+  wheel(S, f, a - 0.06 * s, b + 0.06 * s, 0.035 * s, false);
+  wheel(S, f, a + 0.08 * s, b, 0.035 * s, false);
+  box(S, f, a, b, 0.22 * s, 0.14 * s, 0.09 * s, '#2E9E4F', 0.03 * s);
+  box(S, f, a - 0.01 * s, b, 0.18 * s, 0.15 * s, 0.07 * s, 'ink', 0.12 * s);
+  shadow(S, f, a, b, 0.3 * s, 0.22 * s);
+}
+
+// Bus with a rickshaw-art painted band.
+export function bus(S: Scenery, f: TileFrame, a: number, b: number, s = 1, body = 'rickRed', cross = false, y = 0): void {
+  const [la, lb] = cross ? [0.14, 0.42] : [0.42, 0.14];
+  box(S, f, a, b, la * s, lb * s, 0.14 * s, body, y + 0.04 * s);
+  box(S, f, a, b, (la + 0.004) * s, (lb + 0.004) * s, 0.035 * s, 'glass', y + 0.12 * s);
+  box(S, f, a, b, (la + 0.006) * s, (lb + 0.006) * s, 0.018 * s, 'rickYellow', y + 0.07 * s);
+  if (y === 0) shadow(S, f, a, b, (la + 0.1) * s, (lb + 0.1) * s);
+}
+
+export function truck(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  box(S, f, a + 0.1 * s, b, 0.1 * s, 0.14 * s, 0.12 * s, 'rickYellow', 0.03 * s);
+  box(S, f, a - 0.05 * s, b, 0.22 * s, 0.15 * s, 0.13 * s, 'rickTeal', 0.03 * s);
+  shadow(S, f, a, b, 0.4 * s, 0.24 * s);
+}
+
+// Nouka (country boat): slim hull, curved bamboo shade.
+export function nouka(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  S.solid(new THREE.CylinderGeometry(0.05 * s, 0.02 * s, 0.38 * s, 6), 'terracotta', at(f, a, b, 0.035 * s), new THREE.Euler(0, yaw(f).y, Math.PI / 2, 'YXZ'));
+  S.solid(new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.13 * s, 6, 1, false, 0, Math.PI), 'rickYellow', at(f, a, b, 0.07 * s), new THREE.Euler(0, yaw(f).y, Math.PI / 2, 'YXZ'));
+}
+
+// River launch: white multi-deck passenger boat with colored stripes (Sadarghat).
+export function launch(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  box(S, f, a, b, 0.62 * s, 0.2 * s, 0.07 * s, 'rickBlue', 0.01);
+  box(S, f, a, b, 0.56 * s, 0.17 * s, 0.09 * s, '#FFFFFF', 0.08 * s);
+  box(S, f, a, b, 0.57 * s, 0.18 * s, 0.015 * s, 'rickRed', 0.13 * s);
+  box(S, f, a - 0.04 * s, b, 0.4 * s, 0.15 * s, 0.08 * s, '#FFFFFF', 0.17 * s);
+  box(S, f, a - 0.04 * s, b, 0.41 * s, 0.16 * s, 0.012 * s, 'rickYellow', 0.21 * s);
+  cyl(S, f, a + 0.12 * s, b, 0.025 * s, 0.1 * s, 'ink', 0.25 * s, 6);
+}
+
+// Train of `cars` along the tile, green and red like Bangladesh Railway coaches.
+export function train(S: Scenery, f: TileFrame, a: number, b: number, cars: number, s = 1, color = '#2E9E4F'): void {
+  const len = 0.26 * s;
+  for (let k = 0; k < cars; k++) {
+    const ca = a + (k - (cars - 1) / 2) * (len + 0.02 * s);
+    box(S, f, ca, b, len, 0.12 * s, 0.12 * s, color, 0.03 * s);
+    box(S, f, ca, b, len + 0.004, 0.124 * s, 0.025 * s, 'glass', 0.1 * s);
+  }
+  shadow(S, f, a, b, cars * (len + 0.02) + 0.1, 0.22 * s);
+}
+
+// Elevated Metro Rail viaduct with a white and green train (Uttara, Line 6).
+export function metro(S: Scenery, f: TileFrame, a: number, b: number, len: number, h = 0.36): void {
+  for (const pa of [-len / 2 + 0.06, len / 2 - 0.06]) box(S, f, a + pa, b, 0.06, 0.06, h, 'concrete');
+  box(S, f, a, b, len, 0.18, 0.05, 'concreteShade', h);
+  box(S, f, a, b, len * 0.8, 0.13, 0.1, '#FFFFFF', h + 0.05);
+  box(S, f, a, b, len * 0.8 + 0.004, 0.134, 0.022, '#2E9E4F', h + 0.08);
+  shadow(S, f, a, b, len + 0.1, 0.3);
+}
+
+// Flyover: pillars, a deck, and a bus on top (Jatrabari, Mohakhali).
+export function flyover(S: Scenery, f: TileFrame, a: number, b: number, len: number, h = 0.3): void {
+  for (const pa of [-len / 2 + 0.08, 0, len / 2 - 0.08]) box(S, f, a + pa, b, 0.05, 0.05, h, 'concrete');
+  box(S, f, a, b, len, 0.2, 0.04, 'road', h);
+  box(S, f, a, b, len, 0.012, 0.01, 'roadLine', h + 0.04);
+  bus(S, f, a + 0.08, b, 0.8, 'rickRed', false, h + 0.04 - 0.032);
+}
+
+// Foot over-bridge with stairs at both ends (Farmgate).
+export function footbridge(S: Scenery, f: TileFrame, a: number, b: number, len: number, h = 0.3): void {
+  for (const pa of [-len / 2, len / 2]) box(S, f, a + pa, b, 0.1, 0.12, h, 'concreteShade');
+  box(S, f, a, b, len, 0.1, 0.03, 'concrete', h);
+  box(S, f, a, b, len, 0.11, 0.015, 'rickTeal', h + 0.03);
+}
+
+// Electric pole with a tangle of cables (DESCO).
+export function pole(S: Scenery, f: TileFrame, a: number, b: number, h = 0.7): void {
+  box(S, f, a, b, 0.04, 0.04, h, 'concreteShade');
+  box(S, f, a, b, 0.28, 0.03, 0.03, 'ink', h - 0.08);
+  box(S, f, a, b + 0.04, 0.12, 0.08, 0.1, 'tinRoof', h - 0.32);
+  for (const [da, db, y] of [[-0.3, 0.1, h - 0.1], [0.3, -0.1, h - 0.14], [-0.28, -0.12, h - 0.18], [0.26, 0.14, h - 0.12]] as const) {
+    box(S, f, a + da / 2, b + db / 2, Math.abs(da) + 0.02, Math.abs(db) + 0.01, 0.008, 'ink', y);
+  }
+  shadow(S, f, a, b, 0.2, 0.2);
+}
+
+// Overhead water tank on legs (Dhaka WASA).
+export function waterTower(S: Scenery, f: TileFrame, a: number, b: number, h = 0.45): void {
+  for (const [da, db] of [[-0.08, -0.08], [0.08, -0.08], [-0.08, 0.08], [0.08, 0.08]] as const) box(S, f, a + da, b + db, 0.03, 0.03, h, 'concreteShade');
+  cyl(S, f, a, b, 0.15, 0.2, 'water', h, 10);
+  cyl(S, f, a, b, 0.155, 0.03, 'waterLight', h + 0.2, 10);
+  shadow(S, f, a, b, 0.4, 0.4);
+}
+
+// Passenger plane in Bangladesh green with a red tail stripe (airport).
+export function plane(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  S.solid(new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.6 * s, 8), '#FFFFFF', at(f, a, b, 0.09 * s), new THREE.Euler(0, yaw(f).y, Math.PI / 2, 'YXZ'));
+  box(S, f, a + 0.02 * s, b, 0.14 * s, 0.6 * s, 0.015 * s, 'boardGreen', 0.08 * s);
+  box(S, f, a - 0.26 * s, b, 0.08 * s, 0.03 * s, 0.14 * s, 'rickRed', 0.1 * s);
+  box(S, f, a - 0.26 * s, b, 0.06 * s, 0.22 * s, 0.012 * s, 'boardGreen', 0.12 * s);
+  shadow(S, f, a, b, 0.7 * s, 0.6 * s);
+}
+
+export function controlTower(S: Scenery, f: TileFrame, a: number, b: number, h = 0.7): void {
+  cyl(S, f, a, b, 0.05, h, 'concrete', 0, 8);
+  cyl(S, f, a, b, 0.1, 0.1, 'glass', h, 8, 0.12);
+  cyl(S, f, a, b, 0.125, 0.025, 'rickBlue', h + 0.1, 8);
+  shadow(S, f, a, b, 0.26, 0.26);
+}
+
+// Market shed with a tin roof and crates of produce (Karwan Bazar).
+export function marketShed(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
+  for (const [da, dbb] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) box(S, f, a + da * (wa / 2 - 0.02), b + dbb * (db / 2 - 0.02), 0.025, 0.025, 0.22, 'concreteShade');
+  box(S, f, a, b, wa + 0.06, db + 0.06, 0.025, 'tinRoof', 0.22);
+  const crates = ['#2E9E4F', 'rickRed', 'rickYellow', '#EE7D2B', '#2E9E4F', 'rickPink'];
+  crates.forEach((c, k) => box(S, f, a + ((k % 3) - 1) * wa * 0.28, b + (Math.floor(k / 3) - 0.5) * db * 0.4, wa * 0.22, db * 0.3, 0.07, c));
+  shadow(S, f, a, b, wa + 0.1, db + 0.1);
+}
+
+// Factory with a saw-tooth roof and a chimney (Tejgaon).
+export function factory(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
+  box(S, f, a, b, wa, db, 0.26, 'concrete');
+  for (let k = 0; k < 3; k++) {
+    const ka = a + (k - 1) * wa / 3;
+    S.solid(new THREE.CylinderGeometry(0.5, 0.5, 1, 3), 'tinRoof', at(f, ka, b, 0.3), new THREE.Euler(0, yaw(f, true).y, Math.PI / 2, 'YXZ'), new THREE.Vector3(0.1, db, wa / 3.2));
+  }
+  cyl(S, f, a + wa / 2 - 0.06, b + db / 2 - 0.06, 0.04, 0.55, 'terracotta', 0, 8, 0.03);
+  box(S, f, a + wa / 2 - 0.06, b + db / 2 - 0.06, 0.09, 0.09, 0.04, 'rickRed', 0.5);
+  shadow(S, f, a, b, wa + 0.1, db + 0.1);
+}
+
+// Flower stall: low tables heaped with flowers (Shahbag flower market).
+export function flowerStall(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  box(S, f, a, b, 0.3 * s, 0.14 * s, 0.07 * s, 'terracotta');
+  const colors = ['rickPink', 'rickYellow', 'rickRed', '#FFFFFF', '#EE7D2B'];
+  for (let k = 0; k < 10; k++) {
+    S.solid(new THREE.IcosahedronGeometry(0.03 * s, 0), colors[k % colors.length]!, at(f, a + ((k % 5) - 2) * 0.06 * s, b + (Math.floor(k / 5) - 0.5) * 0.06 * s, 0.1 * s));
+  }
+  shadow(S, f, a, b, 0.4 * s, 0.24 * s);
+}
+
+// Shapla (water lily) fountain sculpture on a round base (Motijheel's Shapla Chattar).
+export function shapla(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  cyl(S, f, a, b, 0.2 * s, 0.04 * s, 'concrete', 0, 12);
+  cyl(S, f, a, b, 0.17 * s, 0.02 * s, 'water', 0.04 * s, 12);
+  cyl(S, f, a, b, 0.03 * s, 0.22 * s, 'concrete', 0.04 * s, 6);
+  for (let k = 0; k < 6; k++) {
+    const ang = (k / 6) * Math.PI * 2;
+    S.solid(new THREE.ConeGeometry(0.035 * s, 0.14 * s, 4), k % 2 ? '#FFFFFF' : 'rickPink', at(f, a + Math.cos(ang) * 0.06 * s, b + Math.sin(ang) * 0.06 * s, 0.32 * s), new THREE.Euler(Math.sin(ang) * 0.6, 0, -Math.cos(ang) * 0.6));
+  }
+  shadow(S, f, a, b, 0.46 * s, 0.46 * s);
+}
+
+// Spotted deer (zoo).
+export function deer(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  box(S, f, a, b, 0.18 * s, 0.07 * s, 0.07 * s, '#C38A4E', 0.12 * s);
+  for (const [da, dbb] of [[-0.07, -0.025], [0.07, -0.025], [-0.07, 0.025], [0.07, 0.025]] as const) box(S, f, a + da * s, b + dbb * s, 0.02 * s, 0.02 * s, 0.12 * s, '#8A5232');
+  box(S, f, a + 0.09 * s, b, 0.04 * s, 0.04 * s, 0.1 * s, '#C38A4E', 0.17 * s);
+  box(S, f, a + 0.12 * s, b, 0.07 * s, 0.045 * s, 0.045 * s, '#C38A4E', 0.25 * s);
+  shadow(S, f, a, b, 0.26 * s, 0.14 * s);
+}
+
+// Roadside tea stall: tin roof on posts, counter, kettle, bench (Cha Adda, TSC).
+export function teaStall(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  box(S, f, a, b, 0.3 * s, 0.18 * s, 0.1 * s, 'terracotta');
+  for (const da of [-0.14, 0.14]) box(S, f, a + da * s, b - 0.08 * s, 0.02 * s, 0.02 * s, 0.26 * s, 'ink');
+  box(S, f, a, b - 0.02 * s, 0.36 * s, 0.26 * s, 0.02 * s, 'tinRoof', 0.26 * s);
+  cyl(S, f, a + 0.07 * s, b, 0.035 * s, 0.05 * s, 'concreteShade', 0.1 * s, 8);
+  box(S, f, a, b - 0.2 * s, 0.3 * s, 0.05 * s, 0.05 * s, 'rickTeal');
+  shadow(S, f, a, b - 0.05 * s, 0.46 * s, 0.4 * s);
+}
+
+// A flying kite on a thin string, in rickshaw-art colors (Puran Dhaka, Lucky).
+export function kite(S: Scenery, f: TileFrame, a: number, b: number, y: number, color: string, s = 1): void {
+  S.solid(new THREE.OctahedronGeometry(0.08 * s, 0), color, at(f, a, b, y), new THREE.Euler(0, 0.6, 0), new THREE.Vector3(1, 1.2, 0.15));
+  box(S, f, a, b, 0.006, 0.006, y * 0.9, 'ink', 0.02);
+}
+
+export function cardStack(S: Scenery, f: TileFrame, a: number, b: number, color: string, s = 1): void {
+  for (let k = 0; k < 4; k++) box(S, f, a + k * 0.01 * s, b - k * 0.008 * s, 0.24 * s, 0.34 * s, 0.018 * s, k === 3 ? color : '#FFFFFF', k * 0.02 * s);
+  box(S, f, a + 0.03 * s, b - 0.024 * s, 0.14 * s, 0.22 * s, 0.004, 'rickYellow', 0.08 * s);
+  shadow(S, f, a, b, 0.32 * s, 0.4 * s);
+}
+
+export function coins(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
+  for (const [da, dbb, n] of [[0, 0, 5], [0.1, 0.05, 3], [-0.09, 0.06, 2]] as const) {
+    for (let k = 0; k < n; k++) cyl(S, f, a + da * s, b + dbb * s, 0.06 * s, 0.02 * s, k % 2 ? '#E2B33C' : 'rickYellow', k * 0.022 * s, 10);
+  }
+  shadow(S, f, a, b, 0.3 * s, 0.24 * s);
+}
+
+export function trafficLight(S: Scenery, f: TileFrame, a: number, b: number, h = 0.45): void {
+  box(S, f, a, b, 0.025, 0.025, h, 'ink');
+  box(S, f, a, b, 0.06, 0.05, 0.16, 'ink', h);
+  (['rickRed', 'rickYellow', '#2E9E4F'] as const).forEach((c, k) => S.solid(new THREE.IcosahedronGeometry(0.018, 0), c, at(f, a, b, h + 0.13 - k * 0.05)));
+}
+
+// Gate with two pillars and a beam (DOHS housing society).
+export function gate(S: Scenery, f: TileFrame, a: number, b: number, wa: number, h = 0.32): void {
+  for (const da of [-wa / 2, wa / 2]) box(S, f, a + da, b, 0.06, 0.06, h, 'concrete');
+  box(S, f, a, b, wa + 0.08, 0.07, 0.05, 'boardGreenDark', h);
+}
+
+// A Bangla sign on the building face that looks most toward the camera.
+export function sign(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number, y: number, text: string, bg: string): void {
+  const [sx, sz] = size(f, wa, db);
   const centre = at(f, a, b, y);
-  // Pick the face (+x, -x, +z or -z) that faces the camera most.
   const faces = [new THREE.Vector2(1, 0), new THREE.Vector2(-1, 0), new THREE.Vector2(0, 1), new THREE.Vector2(0, -1)];
-  const n = faces.reduce((best, v) => (v.dot(ctx.cameraDir) > best.dot(ctx.cameraDir) ? v : best));
-  const faceWidth = n.x !== 0 ? sizeZ : sizeX;
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(faceWidth * 0.9, faceWidth * 0.22), new THREE.MeshBasicMaterial({ map: tex }));
-  mesh.position.set(centre.x + n.x * (sizeX / 2 + 0.006), centre.y, centre.z + n.y * (sizeZ / 2 + 0.006));
-  mesh.rotation.y = Math.atan2(n.x, n.y);
-  return mesh;
+  const n = faces.reduce((best, v) => (v.dot(S.ctx.cameraDir) > best.dot(S.ctx.cameraDir) ? v : best));
+  const faceWidth = n.x !== 0 ? sz : sx;
+  const pos = new THREE.Vector3(centre.x + n.x * (sx / 2 + 0.006), centre.y, centre.z + n.y * (sz / 2 + 0.006));
+  S.sign(new THREE.PlaneGeometry(faceWidth * 0.92, faceWidth * 0.23), pos, Math.atan2(n.x, n.y), text, bg);
 }
