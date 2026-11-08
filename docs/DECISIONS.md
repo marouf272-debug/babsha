@@ -48,6 +48,15 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-40 | 2026-11-08 | Q-17 closed: each deck is shuffled once at game start with the seeded generator. A drawn card goes to the bottom. A held Jam exit card leaves the deck until used, then goes to the bottom. On bankruptcy a held card returns to the bottom of its deck. | Owner | |
 | D-41 | 2026-11-08 | Q-19 closed: card effects and amounts approved as drafted in data/cards.json. A move to a tile then resolves that tile normally. Bangla text still needs native review. | Owner | |
 | D-42 | 2026-11-08 | Q-08 closed: a player in Jam may build, sell, mortgage, redeem and trade as normal. Jam only stops movement. | Owner | |
+| D-43 | 2026-11-08 | Auction flow: the first bid may be ৳0, each later bid at least ৳100 more. The high bidder cannot fold. When everyone but the high bidder has folded, the high bidder wins at that bid. If nobody ever bids, the property stays unowned. | Owner | Plan 2.3 auction rule, edges confirmed. |
+| D-44 | 2026-11-08 | A property can be traded only when its whole color set has no buildings. | Owner | Matches D-30. |
+| D-45 | 2026-11-08 | A player made bankrupt by a "pay each player" card: after buildings are sold, remaining cash is split equally among the players owed, and properties go to auction. | Owner | |
+| D-46 | 2026-11-08 | Build, sell, mortgage, redeem and trade happen only in MANAGE, by the active player, after their roll is resolved. A debtor may sell, mortgage and trade while in DEBT. | Owner | Plan 3.2 order. |
+| D-47 | 2026-11-08 | Builder reading: a held Jam exit card is used before rolling, then the player rolls normally, the same as paying the fine (D-21, D-25). | Builder | Plan 2.3 lists the card beside the fine. |
+| D-48 | 2026-11-08 | Builder reading: when cash is split (D-45), each player gets an equal whole-Taka share and any remainder goes to the bank. | Builder | |
+| D-49 | 2026-11-08 | Builder reading: a payment larger than the payer's cash creates a debt for the full amount and the DEBT state. The debtor raises cash, then pays, or declares bankruptcy at any time in DEBT. Several debts at once (a "collect from each" card) are settled one debtor at a time in seat order after the active player. Then the turn continues where it stopped. | Builder | Plan 3.2 DEBT state, R-53. |
+| D-50 | 2026-11-08 | Builder reading: properties returned to auction by a bankruptcy are auctioned one at a time in board order before play continues. A forced Jam fine that cannot be paid is settled in DEBT first, then the player moves. | Builder | |
+| D-51 | 2026-11-08 | Builder reading: trades cover properties and cash only, not held Jam cards. The proposer offers one trade to one player, who accepts or rejects it. | Builder | FR-08 says "properties and cash". |
 
 ## Open questions
 

@@ -29,7 +29,7 @@ How to read this document:
 
 - **R-10** A turn moves through these states: START_TURN, ROLL, MOVE, RESOLVE, then BUY_DECISION or AUCTION where they apply, then MANAGE, then END_TURN. A DEBT state can be entered at any time and returns to the previous state or ends in GAME_OVER. (plan 3.2)
 - **R-11** In Pass & Play, START_TURN shows a hand-off screen and the next player taps to reveal their view. (FR-12, plan 3.2)
-- **R-12** In MANAGE the active player may build, sell, mortgage, redeem and trade, also while in Jam. (plan 3.2, D-42)
+- **R-12** In MANAGE the active player may build, sell, mortgage, redeem and trade, also while in Jam. These happen only after the roll is resolved. (plan 3.2, D-42, D-46)
 
 ## 4. Dice, doubles and movement
 
@@ -48,7 +48,7 @@ How to read this document:
 ### 5.2 Auction
 
 - **R-19** The auction is live, with bid buttons, a slider, fold and a log. It ends when one bidder remains. (FR-04)
-- **R-20** The opening bid is ৳0 and the minimum raise is ৳100. (plan 2.3)
+- **R-20** The opening bid is ৳0 and the minimum raise is ৳100: the first bid may be ৳0, each later bid at least ৳100 more. The high bidder cannot fold, and wins when everyone else has folded. (plan 2.3, D-43)
 - **R-21** If every player folds, the property stays unowned. (plan 2.3)
 - **R-22** Every active player may bid, including the player who declined. A bid cannot exceed the bidder's cash. (D-33)
 
@@ -96,22 +96,22 @@ How to read this document:
 ## 8. Trading
 
 - **R-45** Any two active players may trade properties and cash with each other. (FR-08)
-- **R-46** Properties with buildings cannot be traded. (plan 2.3)
+- **R-46** Properties with buildings cannot be traded, and a property can be traded only when its whole color set has no buildings. (plan 2.3, D-44) Trades cover properties and cash only. (D-51)
 - **R-47** A mortgaged property can be traded. The receiver redeems it at the normal cost, principal plus 10 percent, with no extra fee at the trade. (plan 2.3, D-37)
 - **R-48** The trade sheet can be collapsed to show the board. This is an interface feature, not an engine rule. (FR-08, D-36)
 
 ## 9. Jam
 
 - **R-49** A player goes to Jam by rolling a third double (R-15), landing on Go to Jam (R-35), or by a card. Going to Jam is a direct jump and never pays the GO salary. (FR-02, FR-10, D-23)
-- **R-50** To leave Jam, a player pays a fine of ৳500, rolls doubles, or uses a held card. (plan 2.3, D-18)
+- **R-50** To leave Jam, a player pays a fine of ৳500, rolls doubles, or uses a held card. A held card is used before rolling, like the fine. (plan 2.3, D-18, D-47)
 - **R-51** A player who pays the fine does so before rolling, then rolls and moves normally. (D-21, D-25) A player who rolls doubles leaves Jam and moves by that roll. (D-21) After 3 failed rolls, the fine is forced and the player moves by that third roll. (plan 2.3, D-21)
 - **R-52** A player in Jam does not take the doubles extra roll, and leaving Jam by rolling doubles gives no extra roll. (plan 3.2, D-21) After being sent to Jam the turn ends with no extra roll. (D-26)
 
 ## 10. Debt, bankruptcy and winning
 
-- **R-53** A player who owes more than they hold enters DEBT and must resolve it by selling buildings, mortgaging, or declaring bankruptcy. (plan 3.2)
+- **R-53** A player who owes more than they hold enters DEBT and must resolve it by selling buildings, mortgaging, trading, or declaring bankruptcy. Several debts are settled one debtor at a time, then the turn continues. (plan 3.2, D-39, D-49)
 - **R-54** A player bankrupt to another player transfers all their assets to that player. (plan 2.3)
-- **R-55** A player bankrupt to the bank returns their properties to auction. (plan 2.3)
+- **R-55** A player bankrupt to the bank returns their properties to auction, one at a time in board order. (plan 2.3, D-50) A player made bankrupt by a "pay each player" card splits remaining cash equally among the players owed, remainder to the bank, and their properties go to auction. (D-45, D-48)
 - **R-56** The last solvent player wins. (FR-11, plan 2.3)
 - **R-57** In a bankruptcy, buildings are first sold to the bank at 50 percent. Bankrupt to a player: cash and properties pass on, mortgages stay. Bankrupt to the bank: mortgages are cleared and the properties are auctioned. (D-38) A player in DEBT may trade, sell buildings and mortgage. (D-39)
 
