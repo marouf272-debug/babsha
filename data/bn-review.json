@@ -202,6 +202,9 @@
     "action.build": "needs native review",
     "action.sell": "needs native review",
     "action.mortgage": "needs native review",
-    "action.redeem": "needs native review"
+    "action.redeem": "needs native review",
+    "sound.on": "needs native review",
+    "sound.off": "needs native review",
+    "manage.tapHint": "needs native review"
   }
 }

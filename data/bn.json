@@ -200,5 +200,8 @@
   "action.build": "বানান",
   "action.sell": "বিক্রি",
   "action.mortgage": "বন্ধক",
-  "action.redeem": "ছাড়ান"
+  "action.redeem": "ছাড়ান",
+  "sound.on": "শব্দ চালু",
+  "sound.off": "শব্দ বন্ধ",
+  "manage.tapHint": "বোর্ডে হাইলাইট করা ঘরে চাপুন, অথবা নিচের তালিকা ব্যবহার করুন।"
 }

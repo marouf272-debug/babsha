@@ -200,5 +200,8 @@
   "action.build": "Build",
   "action.sell": "Sell",
   "action.mortgage": "Mortgage",
-  "action.redeem": "Redeem"
+  "action.redeem": "Redeem",
+  "sound.on": "Sound on",
+  "sound.off": "Sound off",
+  "manage.tapHint": "Tap a highlighted tile on the board, or use the list below."
 }

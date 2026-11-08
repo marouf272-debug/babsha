@@ -66,6 +66,20 @@ test.describe('S4 interface on a phone', () => {
     expect(new Set(types)).toEqual(new Set(['BUILD']));
   });
 
+  test('FR-06, D-71: Build highlights the usable tiles and tapping one builds there', async ({ page }) => {
+    await startGame(page, ['human', 'human']);
+    for (let i = 0; i < 3000 && !(await page.getByTestId('act-build').isEnabled()); i++) await runSteps(page, 1);
+    await page.getByTestId('act-build').click();
+    type Hook = { __babsha: { app: { tapTargetsForTest(): Array<{ id: string; x: number; y: number }>; housesForTest(id: string): number } } };
+    const targets = await page.evaluate(() => (window as unknown as Hook).__babsha.app.tapTargetsForTest());
+    expect(targets.length).toBeGreaterThan(0);
+    const t = targets[0]!;
+    const before = await page.evaluate((id) => (window as unknown as Hook).__babsha.app.housesForTest(id), t.id);
+    await page.mouse.click(t.x, t.y);
+    const after = await page.evaluate((id) => (window as unknown as Hook).__babsha.app.housesForTest(id), t.id);
+    expect(after).toBe(before + 1);
+  });
+
   test('FR-13: a game with one human against a computer player runs the computer turns', async ({ page }) => {
     await startGame(page, ['human', 'hard']);
     for (let i = 0; i < 60; i++) await playOneStep(page);

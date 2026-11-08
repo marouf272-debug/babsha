@@ -8,6 +8,10 @@ import { getLang, money, num, setLang, t, tIn } from '../i18n';
 import { BoardScene, type SceneText } from '../scene/board';
 import type { SceneConfig } from '../scene/config';
 import { describeEvent, playerName, tileName } from './describe';
+import { cueFor } from '../audio/cues';
+import { Sfx } from '../audio/sfx';
+import { cardArt } from './cardArt';
+import { icon } from './icons';
 import { h } from './dom';
 import { Session, type SeatKind } from './session';
 
@@ -50,9 +54,15 @@ export class App {
   private playing: Promise<void> = Promise.resolve();
   private readonly els: Record<string, HTMLElement> = {};
   private suggestMemory: AiMemory = emptyMemory();
+  private readonly sfx: Sfx;
   private suggestRng = 7;
 
   constructor(private readonly o: AppOptions) {
+    let muted = o.test;
+    try { muted = o.test || localStorage.getItem('babsha.sound') === 'off'; } catch { /* storage may be blocked */ }
+    this.sfx = new Sfx(muted);
+    // Phones only start audio after a tap.
+    if (!o.test) document.addEventListener('pointerdown', () => this.sfx.unlock(), { once: false, passive: true });
     document.documentElement.lang = getLang();
     this.renderSetup();
   }
@@ -68,6 +78,16 @@ export class App {
     this.suggestMemory = d.memory;
     this.suggestRng = d.rng;
     return d.action;
+  }
+
+  // Test mode only: the tiles currently highlighted for tapping, with their screen points.
+  tapTargetsForTest(): Array<{ id: string; x: number; y: number }> {
+    return this.tapTargets().map((id) => ({ id, ...this.scene!.tileScreenPoint(id) }));
+  }
+
+  // Test mode only: houses on a tile.
+  housesForTest(tileId: string): number {
+    return this.session?.state.properties[tileId]?.houses ?? 0;
   }
 
   // ---------- setup ----------
@@ -139,6 +159,13 @@ export class App {
     if (fps) root.append(fps);
     this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), { instant: this.o.test, fps });
     new ResizeObserver(() => this.scene?.resize()).observe(canvas);
+    // D-71: tap a highlighted tile to build, sell, mortgage or redeem there.
+    canvas.addEventListener('pointerup', (e) => {
+      const ids = this.tapTargets();
+      if (!ids.length || !this.scene || !this.mode) return;
+      const id = this.scene.pickTile(e.clientX, e.clientY);
+      if (id && ids.includes(id)) this.act({ type: this.mode, tileId: id });
+    });
   }
 
   private sceneText(): SceneText {
@@ -167,8 +194,28 @@ export class App {
     this.confirmBankrupt = false;
     // Computer card draws are shown briefly; a human dismisses their own card.
     const scene = this.scene;
-    this.playing = this.playing.then(() => scene?.play(events, state));
+    this.playing = this.playing.then(() => {
+      this.sounds(events);
+      return scene?.play(events, state);
+    });
     this.render();
+  }
+
+  // Plays the sound for each event, timed to the board animation (dice first, then each hop).
+  private sounds(events: GameEvent[]): void {
+    const { diceMs, hopMs } = this.o.sceneConfig.animation;
+    let at = 0;
+    for (const e of events) {
+      const cue = cueFor(e);
+      if (!cue) continue;
+      if (e.type === 'moved') {
+        for (let k = 0; k < Math.min(Math.abs(e.steps), 12); k++) this.sfx.play('hop', (at + (k + 1) * hopMs) / 1000);
+        at += Math.abs(e.steps) * hopMs;
+      } else {
+        this.sfx.play(cue, at / 1000);
+        if (e.type === 'diceRolled') at += diceMs;
+      }
+    }
   }
 
   render(): void {
@@ -180,10 +227,33 @@ export class App {
     this.renderActions(s);
     this.renderSheet(s);
     this.renderOverlay(s);
+    this.scene?.setHighlights(this.tapTargets());
+  }
+
+  // Tiles the chosen management move can use right now, for highlighting and tapping.
+  private tapTargets(): string[] {
+    const session = this.session;
+    if (!session || this.panel !== 'manage' || !this.mode) return [];
+    const who = session.actor();
+    if (who === null || !session.isHuman(who) || session.state.turn.phase !== 'MANAGE') return [];
+    return session.legalFor(who).filter((a) => a.type === this.mode && 'tileId' in a).map((a) => (a as { tileId: string }).tileId);
   }
 
   private langButton(): HTMLElement {
     return h('button', { class: 'chip', 'data-testid': 'lang', onclick: () => this.toggleLang() }, t('lang.toggle'));
+  }
+
+  private soundButton(): HTMLElement {
+    const on = !this.sfx.muted;
+    const label = on ? t('sound.on') : t('sound.off');
+    const b = h('button', { class: 'chip icon', 'data-testid': 'sound', 'aria-label': label, title: label, 'aria-pressed': on ? 'true' : 'false', onclick: () => {
+      this.sfx.setMuted(!this.sfx.muted);
+      this.sfx.unlock();
+      try { localStorage.setItem('babsha.sound', this.sfx.muted ? 'off' : 'on'); } catch { /* storage may be blocked */ }
+      this.render();
+    } });
+    b.append(icon(on ? 'soundOn' : 'soundOff', 20));
+    return b;
   }
 
   private toggleLang(): void {
@@ -201,6 +271,7 @@ export class App {
     this.els['top']!.replaceChildren(
       h('div', { class: 'turn', 'data-testid': 'turn' }, label),
       this.langButton(),
+      this.soundButton(),
       h('button', { class: 'chip', 'data-testid': 'new-game', onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, t('menu.newGame')),
     );
   }
@@ -298,6 +369,8 @@ export class App {
     else if (s.turn.phase === 'MANAGE' && this.panel === 'trade') body = this.tradeSheet(s, who);
     if (body) {
       sheet.hidden = false;
+      // The manage list is a short sheet so the highlighted tiles stay visible above it.
+      sheet.classList.toggle('compact', s.turn.phase === 'MANAGE' && this.panel === 'manage');
       sheet.append(body);
     }
   }
@@ -378,6 +451,7 @@ export class App {
     });
     return h('div', { 'data-testid': 'manage' },
       closable ? h('div', { class: 'band manage' }, t('manage.title', { name: playerName(who) })) : h('h3', {}, t('manage.title', { name: playerName(who) })),
+      closable && this.mode ? h('div', { class: 'note' }, t('manage.tapHint')) : null,
       rows.length ? h('div', { class: 'props' }, ...rows) : h('div', { class: 'note' }, t('manage.none')),
       closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.mode = null; this.render(); } }, t('action.close'))) : null,
     );
@@ -495,6 +569,7 @@ export class App {
       if (!session.isHuman(c.player)) setTimeout(() => { if (this.cards[0] === c) dismiss(); }, this.o.test ? 0 : 1600);
       return show(h('div', { class: 'card-box', 'data-testid': 'card' },
         h('div', { class: `band ${c.deck}` }, t(`deck.${c.deck}`)),
+        cardArt(c.deck, card.effect.type, this.o.sceneConfig.colors.palette),
         h('p', {}, this.cardText(card)),
         h('button', { class: 'primary', 'data-testid': 'card-ok', onclick: dismiss }, t('card.ok'))));
     }

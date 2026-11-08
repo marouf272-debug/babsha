@@ -341,6 +341,15 @@ export class BoardScene {
     return null;
   }
 
+  // Screen point (client pixels) of a tile's centre; used by tests to tap tiles.
+  tileScreenPoint(tileId: string): { x: number; y: number } {
+    const t = this.rules.tiles.find((x) => x.id === tileId)!;
+    const p = this.placements[t.pos]!;
+    const v = new THREE.Vector3(p.x, this.cfg.board.tileHeight, p.z).project(this.camera);
+    const r = this.canvas.getBoundingClientRect();
+    return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+  }
+
   // ---------- dice: one texture, one material each ----------
 
   private buildDice(): void {
