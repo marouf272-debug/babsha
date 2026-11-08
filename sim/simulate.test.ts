@@ -10,18 +10,18 @@ mkdirSync(new URL('./reports/', import.meta.url), { recursive: true });
 
 const engine = createEngine(makeRules(tilesDoc, config, cardsDoc));
 
-describe('S1 simulation (plan 4.3 acceptance check)', () => {
+describe('engine simulation (plan 4.3 S1 and S2 acceptance checks)', () => {
   it('1,000 random games of 2 to 6 players finish with no crash, no stuck turn and no broken invariant', () => {
     const report = simulate(engine, { games: 1000, maxActions: 1000, seed: 2026 });
     expect(report.games).toBe(1000);
     expect(report.gamesWon).toBeGreaterThan(0);
     expect(report.violations.slice(0, 10)).toEqual([]);
     // The run must actually exercise the S1 rules, not idle.
-    for (const type of ['salary', 'purchased', 'rentPaid', 'taxPaid', 'sentToJam', 'leftJam', 'jamFinePaid', 'stayedInJam', 'extraRoll', 'auctionStarted', 'auctionWon', 'auctionUnsold', 'buildingBought', 'buildingSold', 'mortgaged', 'redeemed', 'debtCreated', 'debtPaid', 'bankrupt', 'gameOver', 'tradeProposed', 'tradeAccepted', 'tradeRejected', 'cardStub']) {
+    for (const type of ['salary', 'purchased', 'rentPaid', 'taxPaid', 'sentToJam', 'leftJam', 'jamFinePaid', 'stayedInJam', 'extraRoll', 'auctionStarted', 'auctionWon', 'auctionUnsold', 'buildingBought', 'buildingSold', 'mortgaged', 'redeemed', 'debtCreated', 'debtPaid', 'bankrupt', 'gameOver', 'tradeProposed', 'tradeAccepted', 'tradeRejected', 'cardDrawn', 'cardCollected', 'cardPaid', 'cardHeld', 'jamCardUsed']) {
       expect(report.events[type] ?? 0, type).toBeGreaterThan(0);
     }
     const summary = { ...report, finalStates: undefined }; // states are too large for the report
-    writeFileSync(new URL('./reports/s1-random.json', import.meta.url), JSON.stringify(summary, null, 2) + '\n');
+    writeFileSync(new URL('./reports/random.json', import.meta.url), JSON.stringify(summary, null, 2) + '\n');
   }, 120_000);
 
   it('plan 3.1: the same seed replays the same game exactly', () => {

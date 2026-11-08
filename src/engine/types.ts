@@ -213,8 +213,6 @@ export type GameEvent =
   | { type: 'debtPaid'; debt: Debt; transfers: Array<{ to: CashTarget; amount: number }> }
   | { type: 'bankrupt'; player: number; creditor: Creditor; transfers: Array<{ to: CashTarget; amount: number }>; tilesTo: CashTarget | 'auction' }
   | { type: 'gameOver'; winner: number }
-  // S1 STUB event (D-24), removed when the card story lands.
-  | { type: 'cardStub'; player: number; tileId: string; deck: DeckId }
   | { type: 'extraRoll'; player: number }
   | { type: 'turnPassed'; from: number; to: number };
 

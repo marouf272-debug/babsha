@@ -1,8 +1,8 @@
 // Rules engine: (state, action) -> (new state, events). No drawing, no randomness outside state.rng.
 // Rule IDs (R-xx, D-xx) refer to docs/RULES.md and docs/DECISIONS.md.
 
-import { rollDice } from './rng';
-import type { Action, CashTarget, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile, TradeOffer } from './types';
+import { nextFloat, rollDice } from './rng';
+import type { Action, Card, CashTarget, Creditor, DebtReason, DeckId, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile, TradeOffer } from './types';
 
 export class IllegalActionError extends Error {}
 
@@ -36,6 +36,8 @@ export function createEngine(rules: Rules): Engine {
     throw new Error(`Tile ${t.id} cannot be bought`);
   };
 
+  const cardById = new Map<string, Card>([...rules.cards.lucky, ...rules.cards.dohs].map((c) => [c.id, c]));
+
   const isBuyable = (t: Tile) => t.type === 'property' || t.type === 'hub' || t.type === 'utility';
   const alive = (state: GameState) => state.players.map((_, i) => i).filter((i) => !state.players[i]!.bankrupt);
 
@@ -64,6 +66,20 @@ export function createEngine(rules: Rules): Engine {
     const first = contenders[0]!;
     events.push({ type: 'firstPlayer', player: first });
 
+    // D-40: each deck is shuffled once at game start (Fisher-Yates with the seeded generator).
+    const decks = {} as Record<DeckId, string[]>;
+    for (const deck of ['lucky', 'dohs'] as const) {
+      const ids = rules.cards[deck].map((c) => c.id);
+      for (let i = ids.length - 1; i > 0; i--) {
+        const [v, next] = nextFloat(rng);
+        rng = next;
+        const j = Math.floor(v * (i + 1));
+        [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+      }
+      decks[deck] = ids;
+    }
+    events.push({ type: 'decksShuffled', decks: { lucky: [...decks.lucky], dohs: [...decks.dohs] } });
+
     const state: GameState = {
       version: 2,
       rng,
@@ -73,7 +89,7 @@ export function createEngine(rules: Rules): Engine {
       properties: {},
       turn: { active: first, phase: 'START_TURN', doublesThisTurn: 0, extraRoll: false, lastDice: null, pendingTile: null },
       turnCount: 0,
-      decks: { lucky: [], dohs: [] },
+      decks,
       auction: null,
       auctionQueue: [],
       trade: null,
@@ -99,6 +115,7 @@ export function createEngine(rules: Rules): Engine {
       case 'ROLL': {
         const actions: Action[] = [{ type: 'ROLL', player: me }];
         if (p.inJam && p.cash >= config.jam.fine) actions.push({ type: 'PAY_JAM_FINE', player: me });
+        if (p.inJam && p.jamCards.length > 0) actions.push({ type: 'USE_JAM_CARD', player: me }); // R-50, D-47
         return actions;
       }
       case 'BUY_DECISION': {
@@ -298,6 +315,17 @@ export function createEngine(rules: Rules): Engine {
         events.push({ type: 'leftJam', player: me, by: 'fine' });
         break;
 
+      case 'USE_JAM_CARD': {
+        // R-50, D-40, D-47: card goes to the bottom of its deck, then the player rolls normally.
+        const held = player.jamCards.shift()!;
+        state.decks[held.deck].push(held.cardId);
+        player.inJam = false;
+        player.jamFailedRolls = 0;
+        events.push({ type: 'jamCardUsed', player: me, deck: held.deck, cardId: held.cardId });
+        events.push({ type: 'leftJam', player: me, by: 'card' });
+        break;
+      }
+
       case 'ROLL':
         roll(state, events);
         break;
@@ -415,8 +443,10 @@ export function createEngine(rules: Rules): Engine {
         endTurn(state, events);
         break;
 
-      default:
-        throw new IllegalActionError(`Action ${action.type} is not implemented yet`);
+      default: {
+        const unhandled: never = action;
+        throw new IllegalActionError(`Unknown action ${JSON.stringify(unhandled)}`);
+      }
     }
     settle(state, events);
     return { state, events };
@@ -685,12 +715,75 @@ export function createEngine(rules: Rules): Engine {
     }
 
     if (t.type === 'lucky' || t.type === 'dohs') {
-      // S1 STUB (D-24): FR-09 card draws arrive in S2.
-      events.push({ type: 'cardStub', player: me, tileId: t.id, deck: t.type });
+      drawCard(state, events, t.type); // FR-09
       return;
     }
 
     if (t.type === 'corner' && t.corner === 'go_to_jam') sendToJam(state, events, 'goToJamTile');
+  }
+
+  // ---------- cards (FR-09) ----------
+
+  // R-30, R-33, D-40: draw the top card; it goes to the bottom unless it is held.
+  function drawCard(state: GameState, events: GameEvent[], deck: DeckId): void {
+    const me = state.turn.active;
+    const p = state.players[me]!;
+    const id = state.decks[deck].shift()!;
+    const card = cardById.get(id)!;
+    events.push({ type: 'cardDrawn', player: me, deck, cardId: id });
+    const fx = card.effect;
+    if (fx.type === 'jamFreeCard') {
+      p.jamCards.push({ deck, cardId: id }); // R-32
+      events.push({ type: 'cardHeld', player: me, deck, cardId: id });
+      return;
+    }
+    state.decks[deck].push(id);
+    const others = alive(state).filter((i) => i !== me);
+    const seatOrder = others.sort((a, b) => ((a - me + state.players.length) % state.players.length) - ((b - me + state.players.length) % state.players.length));
+
+    switch (fx.type) {
+      case 'collect':
+        p.cash += fx.amount;
+        events.push({ type: 'cardCollected', player: me, cardId: id, amount: fx.amount });
+        return;
+      case 'pay':
+        if (pay(state, events, me, { kind: 'bank' }, fx.amount, 'card')) events.push({ type: 'cardPaid', from: me, to: 'bank', cardId: id, amount: fx.amount });
+        return;
+      case 'collectFromEach':
+        // D-49: each payer in seat order after the active player; short payers settle in DEBT.
+        for (const o of seatOrder) {
+          if (pay(state, events, o, { kind: 'player', player: me }, fx.amount, 'card')) events.push({ type: 'cardPaid', from: o, to: me, cardId: id, amount: fx.amount });
+        }
+        return;
+      case 'payEach': {
+        if (seatOrder.length === 0) return;
+        // D-45: one debt to all of them if the player cannot pay everyone.
+        if (pay(state, events, me, { kind: 'split', players: seatOrder }, fx.amount * seatOrder.length, 'card')) {
+          for (const o of seatOrder) events.push({ type: 'cardPaid', from: me, to: o, cardId: id, amount: fx.amount });
+        }
+        return;
+      }
+      case 'moveTo': {
+        const target = tile(fx.tile).pos;
+        move(state, events, (target - p.position + tiles.length) % tiles.length || tiles.length); // D-41
+        return;
+      }
+      case 'moveBy':
+        move(state, events, fx.steps);
+        return;
+      case 'goToJam':
+        sendToJam(state, events, 'card');
+        return;
+      case 'repairs': {
+        let amount = 0;
+        for (const prop of Object.values(state.properties)) {
+          if (prop.owner !== me) continue;
+          amount += prop.houses >= hotelLevel ? fx.perHotel : prop.houses * fx.perHouse;
+        }
+        if (amount > 0 && pay(state, events, me, { kind: 'bank' }, amount, 'card')) events.push({ type: 'cardPaid', from: me, to: 'bank', cardId: id, amount });
+        return;
+      }
+    }
   }
 
   function sendToJam(state: GameState, events: GameEvent[], reason: 'threeDoubles' | 'goToJamTile' | 'card'): void {

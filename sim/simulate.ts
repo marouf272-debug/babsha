@@ -1,5 +1,5 @@
 // Headless simulation harness (plan 3.4 /sim). Plays random legal actions and checks invariants
-// after every step. S1: random agents only; AI profiles arrive in S3.
+// after every step. Random agents only; AI profiles arrive in S3.
 
 import { nextFloat, type Action, type Engine, type GameEvent, type GameState, type TradeOffer } from '../src/engine';
 
@@ -35,6 +35,8 @@ function bankFlow(events: GameEvent[]): number {
     else if (e.type === 'buildingSold') flow += e.refund;
     else if (e.type === 'mortgaged') flow += e.amount;
     else if (e.type === 'redeemed') flow -= e.cost;
+    else if (e.type === 'cardCollected') flow += e.amount;
+    else if (e.type === 'cardPaid' && e.to === 'bank') flow -= e.amount;
     else if (e.type === 'debtPaid' || e.type === 'bankrupt') {
       for (const t of e.transfers) if (t.to === 'bank') flow -= t.amount;
     }
@@ -90,6 +92,13 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
   const transferred = events.some((e) => e.type === 'bankrupt' || e.type === 'tradeAccepted');
   for (const [id, prop] of Object.entries(before.properties)) {
     if (after.properties[id]?.owner !== prop.owner && !transferred) v.push(`tile ${id} changed owner without a trade or bankruptcy`);
+  }
+  // card-game skill: every card is in exactly one place, its deck or one player's hand (D-40).
+  for (const deck of ['lucky', 'dohs'] as const) {
+    const held = after.players.flatMap((p) => p.jamCards.filter((c) => c.deck === deck).map((c) => c.cardId));
+    const all = [...after.decks[deck], ...held].sort();
+    const expected = rules.cards[deck].map((c) => c.id).sort();
+    if (JSON.stringify(all) !== JSON.stringify(expected)) v.push(`deck ${deck} lost or duplicated a card`);
   }
   if (after.trade && after.turn.phase !== 'MANAGE' && after.turn.phase !== 'DEBT') v.push(`trade waiting in ${after.turn.phase}`);
   if (after.turn.phase === 'BUY_DECISION') {

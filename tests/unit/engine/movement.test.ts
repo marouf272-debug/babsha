@@ -7,10 +7,10 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
   it('FR-01: rolling moves the active player clockwise by the sum of two dice', () => {
     const s0 = start();
     const me = s0.turn.active;
-    const { state, events } = rollAs(s0, 3, 4);
-    expect(state.players[me]!.position).toBe(7);
-    expect(ofType(events, 'diceRolled')[0]).toMatchObject({ player: me, dice: [3, 4], total: 7, doubles: false });
-    expect(ofType(events, 'moved')[0]).toMatchObject({ player: me, from: 0, to: 7 });
+    const { state, events } = rollAs(s0, 4, 6); // Jam at 10, just passing
+    expect(state.players[me]!.position).toBe(10);
+    expect(ofType(events, 'diceRolled')[0]).toMatchObject({ player: me, dice: [4, 6], total: 10, doubles: false });
+    expect(ofType(events, 'moved')[0]).toMatchObject({ player: me, from: 0, to: 10 });
   });
 
   it('FR-01: movement wraps from position 39 back to 0', () => {
@@ -42,7 +42,7 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
   it('FR-02, D-14: doubles give an extra roll after MANAGE, to the same player', () => {
     const s0 = start();
     const me = s0.turn.active;
-    let r = rollAs(s0, 1, 1); // lands on DOHS, a stub in S1
+    let r = rollAs(s0, 5, 5); // Jam at 10, just passing
     expect(r.state.turn.phase).toBe('MANAGE');
     r = step(r.state, { type: 'END_TURN' });
     expect(r.state.turn.active).toBe(me);
@@ -53,7 +53,7 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
 
   it('FR-02: without doubles, END_TURN passes the turn to the next seat', () => {
     const s0 = start();
-    const r = step(rollAs(s0, 3, 4).state, { type: 'END_TURN' }); // Lucky at 7, no decision
+    const r = step(rollAs(s0, 4, 6).state, { type: 'END_TURN' }); // Jam at 10, no decision
     expect(r.state.turn.active).toBe((s0.turn.active + 1) % 3);
     expect(r.state.turn.phase).toBe('START_TURN');
   });
@@ -61,9 +61,9 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
   it('FR-02: three doubles in a row send the player to Jam without moving', () => {
     const s0 = start();
     const me = s0.turn.active;
-    let r = rollAs(s0, 1, 1);
+    let r = rollAs(s0, 5, 5); // Jam at 10, just passing
     r = step(r.state, { type: 'END_TURN' });
-    r = rollAs(r.state, 2, 2); // lands on Jatrabari, unowned
+    r = rollAs(r.state, 2, 2); // lands on Shyamoli, unowned
     r = { ...r, state: skipBuy(r.state) };
     r = step(r.state, { type: 'END_TURN' });
     r = rollAs(r.state, 3, 3);
@@ -86,13 +86,8 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
 
   it('FR-02: the doubles count resets when the turn passes', () => {
     const s0 = edit(start(), (s) => { s.turn.doublesThisTurn = 2; });
-    const r = step(rollAs(s0, 3, 4).state, { type: 'END_TURN' });
+    const r = step(rollAs(s0, 4, 6).state, { type: 'END_TURN' });
     expect(r.state.turn.doublesThisTurn).toBe(0);
   });
 
-  it('S1 STUB (D-24): landing on a card tile draws nothing yet', () => {
-    const { state, events } = rollAs(start(), 3, 4); // Lucky at 7
-    expect(ofType(events, 'cardStub')).toHaveLength(1);
-    expect(state.turn.phase).toBe('MANAGE');
-  });
 });
