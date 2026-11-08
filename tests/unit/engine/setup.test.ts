@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import tilesDoc from '../../../data/tiles.json';
 import config from '../../../data/config.json';
+import cardsDoc from '../../../data/cards.json';
 import { makeRules } from '../../../src/engine';
-import { engine, newGame, ofType, rules } from './helpers';
+import { engine, newGame, ofType, rules, actionTypes } from './helpers';
 
 describe('game setup (FR-01, R-06 to R-09)', () => {
   it('FR-01: the board has 40 tiles', () => {
@@ -55,7 +56,7 @@ describe('game setup (FR-01, R-06 to R-09)', () => {
   it('plan 3.2: a new game starts at START_TURN with the hand-off', () => {
     const { state } = newGame(3);
     expect(state.turn.phase).toBe('START_TURN');
-    expect(engine.legalActions(state)).toEqual([{ type: 'BEGIN_TURN' }]);
+    expect(actionTypes(engine.legalActions(state))).toEqual(['BEGIN_TURN']);
   });
 
   it('rejects an illegal action without changing the state', () => {
@@ -68,9 +69,9 @@ describe('game setup (FR-01, R-06 to R-09)', () => {
   it('FR-01: the rules loader rejects an unknown tile type or a property without a full rent schedule', () => {
     const badType = structuredClone(tilesDoc);
     badType.tiles[2]!.type = 'casino';
-    expect(() => makeRules(badType, config)).toThrow(/unknown type/);
+    expect(() => makeRules(badType, config, cardsDoc)).toThrow(/unknown type/);
     const badRent = structuredClone(tilesDoc);
     badRent.tiles[1]!.rent = [20, 100];
-    expect(() => makeRules(badRent, config)).toThrow(/rent steps/);
+    expect(() => makeRules(badRent, config, cardsDoc)).toThrow(/rent steps/);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edit, engine, newGame, ofType, ready, rollAs, step } from './helpers';
+import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes } from './helpers';
 
 const start = () => ready(newGame(2, 11).state);
 
@@ -10,7 +10,7 @@ describe('buying (FR-03, R-17, R-18)', () => {
     expect(ofType(events, 'offerPurchase')[0]).toMatchObject({
       tileId: 'chawk_bazar', price: 600, mortgageValue: 300, rentKind: 'property', rent: [20, 100, 300, 1800, 2400, 3000],
     });
-    expect(engine.legalActions(state)).toEqual([{ type: 'BUY' }, { type: 'DECLINE' }]);
+    expect(actionTypes(engine.legalActions(state))).toEqual(['BUY', 'DECLINE']);
   });
 
   it('FR-03: BUY pays the price and takes ownership', () => {
@@ -26,7 +26,7 @@ describe('buying (FR-03, R-17, R-18)', () => {
   it('FR-03: BUY is not offered when the player cannot afford the price', () => {
     const s0 = edit(start(), (s) => { s.players[s.turn.active]!.cash = 500; });
     const { state } = rollAs(s0, 1, 2);
-    expect(engine.legalActions(state)).toEqual([{ type: 'DECLINE' }]);
+    expect(actionTypes(engine.legalActions(state))).toEqual(['DECLINE']);
     expect(() => step(state, { type: 'BUY' })).toThrow(/not legal/);
   });
 

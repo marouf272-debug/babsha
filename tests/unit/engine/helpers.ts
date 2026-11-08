@@ -1,8 +1,9 @@
 import tilesDoc from '../../../data/tiles.json';
 import config from '../../../data/config.json';
+import cardsDoc from '../../../data/cards.json';
 import { createEngine, makeRules, rollDice, type Action, type GameEvent, type GameState } from '../../../src/engine';
 
-export const rules = makeRules(tilesDoc, config);
+export const rules = makeRules(tilesDoc, config, cardsDoc);
 export const engine = createEngine(rules);
 
 export function newGame(players = 2, seed = 1) {
@@ -48,3 +49,5 @@ export const pos = (id: string) => {
   if (!t) throw new Error(`no tile ${id}`);
   return t.pos;
 };
+
+export const actionTypes = (actions: Action[]) => actions.map((a) => a.type);

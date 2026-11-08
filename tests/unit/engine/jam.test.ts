@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../../src/engine';
-import { edit, engine, newGame, ofType, ready, rollAs, step } from './helpers';
+import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes } from './helpers';
 
 const start = () => ready(newGame(2, 21).state);
 const jailed = (extra: (s: GameState) => void = () => {}) =>
@@ -29,7 +29,7 @@ describe('Jam (FR-02, FR-10 entry and exit, R-35, R-36, R-49 to R-52)', () => {
   });
 
   it('R-50: a player in Jam may roll or pay the fine before rolling', () => {
-    expect(engine.legalActions(jailed())).toEqual([{ type: 'ROLL' }, { type: 'PAY_JAM_FINE' }]);
+    expect(actionTypes(engine.legalActions(jailed()))).toEqual(['ROLL', 'PAY_JAM_FINE']);
   });
 
   it('R-50, R-51, D-21: paying the fine costs 500, then the player rolls and moves normally', () => {
@@ -56,7 +56,7 @@ describe('Jam (FR-02, FR-10 entry and exit, R-35, R-36, R-49 to R-52)', () => {
 
   it('R-50: paying the fine is not offered without 500 in cash', () => {
     const s0 = jailed((s) => { s.players[s.turn.active]!.cash = 499; });
-    expect(engine.legalActions(s0)).toEqual([{ type: 'ROLL' }]);
+    expect(actionTypes(engine.legalActions(s0))).toEqual(['ROLL']);
   });
 
   it('R-51, R-52, D-21: rolling doubles leaves Jam, moves by that roll, with no extra roll', () => {

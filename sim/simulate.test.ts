@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import tilesDoc from '../data/tiles.json';
 import config from '../data/config.json';
+import cardsDoc from '../data/cards.json';
 import { createEngine, makeRules } from '../src/engine';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { simulate } from './simulate';
 
 mkdirSync(new URL('./reports/', import.meta.url), { recursive: true });
 
-const engine = createEngine(makeRules(tilesDoc, config));
+const engine = createEngine(makeRules(tilesDoc, config, cardsDoc));
 
 describe('S1 simulation (plan 4.3 acceptance check)', () => {
   it('1,000 random games of 2 to 6 players finish with no crash, no stuck turn and no broken invariant', () => {

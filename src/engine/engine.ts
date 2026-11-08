@@ -2,7 +2,7 @@
 // Rule IDs (R-xx, D-xx) refer to docs/RULES.md and docs/DECISIONS.md.
 
 import { rollDice } from './rng';
-import type { Action, GameEvent, GameState, NewGameOptions, PlayerState, Rules, StepResult, Tile } from './types';
+import type { Action, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile } from './types';
 
 export class IllegalActionError extends Error {}
 
@@ -35,6 +35,7 @@ export function createEngine(rules: Rules): Engine {
   };
 
   const isBuyable = (t: Tile) => t.type === 'property' || t.type === 'hub' || t.type === 'utility';
+  const alive = (state: GameState) => state.players.map((_, i) => i).filter((i) => !state.players[i]!.bankrupt);
 
   // ---------- setup ----------
 
@@ -62,12 +63,21 @@ export function createEngine(rules: Rules): Engine {
     events.push({ type: 'firstPlayer', player: first });
 
     const state: GameState = {
-      version: 1,
+      version: 2,
       rng,
-      players: opts.playerIds.map((id) => ({ id, cash: opts.startCash ?? config.startCash, position: 0, inJam: false, jamFailedRolls: 0 })),
+      players: opts.playerIds.map((id) => ({
+        id, cash: opts.startCash ?? config.startCash, position: 0, inJam: false, jamFailedRolls: 0, bankrupt: false, jamCards: [],
+      })),
       properties: {},
       turn: { active: first, phase: 'START_TURN', doublesThisTurn: 0, extraRoll: false, lastDice: null, pendingTile: null },
       turnCount: 0,
+      decks: { lucky: [], dohs: [] },
+      auction: null,
+      auctionQueue: [],
+      trade: null,
+      debts: [],
+      pendingMove: null,
+      winner: null,
     };
     return { state, events };
   }
@@ -75,27 +85,38 @@ export function createEngine(rules: Rules): Engine {
   // ---------- legality ----------
 
   function legalActions(state: GameState): Action[] {
-    const p = state.players[state.turn.active]!;
+    const me = state.turn.active;
+    const p = state.players[me]!;
     switch (state.turn.phase) {
       case 'START_TURN':
-        return [{ type: 'BEGIN_TURN' }];
+        return [{ type: 'BEGIN_TURN', player: me }];
       case 'ROLL': {
-        const actions: Action[] = [{ type: 'ROLL' }];
-        if (p.inJam && p.cash >= config.jam.fine) actions.push({ type: 'PAY_JAM_FINE' });
+        const actions: Action[] = [{ type: 'ROLL', player: me }];
+        if (p.inJam && p.cash >= config.jam.fine) actions.push({ type: 'PAY_JAM_FINE', player: me });
         return actions;
       }
       case 'BUY_DECISION': {
         const t = tile(state.turn.pendingTile!);
         const actions: Action[] = [];
-        if (p.cash >= priceOf(t)) actions.push({ type: 'BUY' });
-        actions.push({ type: 'DECLINE' });
+        if (p.cash >= priceOf(t)) actions.push({ type: 'BUY', player: me });
+        actions.push({ type: 'DECLINE', player: me });
         return actions;
       }
       case 'MANAGE':
-        return [{ type: 'END_TURN' }];
+        return [{ type: 'END_TURN', player: me }];
       default:
         return [];
     }
+  }
+
+  // Matches a requested action against the legal list: same type, same actor, same target.
+  function isLegal(state: GameState, action: Action): boolean {
+    return legalActions(state).some((a) => {
+      if (a.type !== action.type) return false;
+      if (action.player !== undefined && a.player !== action.player) return false;
+      if ('tileId' in a && 'tileId' in action && a.tileId !== action.tileId) return false;
+      return true;
+    });
   }
 
   // ---------- rent (FR-05) ----------
@@ -110,11 +131,11 @@ export function createEngine(rules: Rules): Engine {
       const rent = t.rent!;
       if (owned.houses > 0) return rent[Math.min(owned.houses, hotelLevel)]!;
       const members = rules.groupMembers[t.group!]!;
-      // R-24. Q-10 (set doubling while one member is mortgaged) is open; mortgages arrive in S2.
+      // R-24, D-32: owning the full set doubles unbuilt rent, even if a member is mortgaged.
       const fullSet = ownerHolds(members) === members.length;
       return fullSet ? rent[0]! * config.rent.unbuiltFullSetMultiplier : rent[0]!;
     }
-    // Q-25 (do mortgaged hubs and utilities count?) is open; mortgages arrive in S2.
+    // D-35: mortgaged hubs and utilities still count toward the number owned.
     if (t.type === 'hub') return config.hub.rentByHubsOwned[ownerHolds(hubIds) - 1]!;
     if (t.type === 'utility') return diceTotal * config.utility.diceMultiplierByUtilitiesOwned[ownerHolds(utilityIds) - 1]!;
     return 0;
@@ -123,9 +144,8 @@ export function createEngine(rules: Rules): Engine {
   // ---------- step ----------
 
   function step(input: GameState, action: Action): StepResult {
-    const legal = legalActions(input);
-    if (!legal.some((a) => a.type === action.type)) {
-      throw new IllegalActionError(`Action ${action.type} is not legal in phase ${input.turn.phase}`);
+    if (!isLegal(input, action)) {
+      throw new IllegalActionError(`Action ${action.type}${action.player !== undefined ? ` by player ${action.player}` : ''} is not legal in phase ${input.turn.phase}`);
     }
     const state = structuredClone(input);
     const events: GameEvent[] = [];
@@ -175,8 +195,27 @@ export function createEngine(rules: Rules): Engine {
       case 'END_TURN':
         endTurn(state, events);
         break;
+
+      default:
+        throw new IllegalActionError(`Action ${action.type} is not implemented yet`);
     }
+    settle(state, events);
     return { state, events };
+  }
+
+  // Decides what happens next after any action: debts first, then auctions, then the normal turn.
+  function settle(state: GameState, events: GameEvent[]): void {
+    void events;
+    if (state.turn.phase === 'GAME_OVER') return;
+  }
+
+  // Moves cash from one player to a creditor. S1 STUB (D-24): cash may go below zero, no DEBT yet.
+  function pay(state: GameState, events: GameEvent[], from: number, creditor: Creditor, amount: number, reason: DebtReason): boolean {
+    void events;
+    void reason;
+    state.players[from]!.cash -= amount;
+    if (creditor.kind === 'player') state.players[creditor.player]!.cash += amount;
+    return true;
   }
 
   function roll(state: GameState, events: GameEvent[]): void {
@@ -201,14 +240,18 @@ export function createEngine(rules: Rules): Engine {
       }
       p.jamFailedRolls += 1;
       if (p.jamFailedRolls >= config.jam.maxFailedTurns) {
-        // R-51, D-21: forced fine, then move by this roll. S1 STUB (D-24): cash may go below zero.
-        p.cash -= config.jam.fine;
+        // R-51, D-21: forced fine, then move by this roll.
         p.inJam = false;
         p.jamFailedRolls = 0;
-        events.push({ type: 'jamFinePaid', player: me, amount: config.jam.fine, forced: true });
-        events.push({ type: 'leftJam', player: me, by: 'forcedFine' });
         state.turn.extraRoll = false;
-        move(state, events, total);
+        if (pay(state, events, me, { kind: 'bank' }, config.jam.fine, 'jamFine')) {
+          events.push({ type: 'jamFinePaid', player: me, amount: config.jam.fine, forced: true });
+          events.push({ type: 'leftJam', player: me, by: 'forcedFine' });
+          move(state, events, total);
+        } else {
+          state.pendingMove = total; // D-50: settle the fine in DEBT, then move.
+          state.turn.phase = 'MANAGE';
+        }
         return;
       }
       events.push({ type: 'stayedInJam', player: me, failedRolls: p.jamFailedRolls });
@@ -231,10 +274,10 @@ export function createEngine(rules: Rules): Engine {
     const p = state.players[me]!;
     const from = p.position;
     const raw = from + steps;
-    p.position = raw % tiles.length;
+    p.position = ((raw % tiles.length) + tiles.length) % tiles.length;
     events.push({ type: 'moved', player: me, from, to: p.position, steps });
-    if (raw >= tiles.length) {
-      // R-16, D-15: passing or landing on GO pays once per move.
+    if (steps > 0 && raw >= tiles.length) {
+      // R-16, D-15: passing or landing on GO pays once per move. Backward moves never pay.
       p.cash += config.goSalary;
       events.push({ type: 'salary', player: me, amount: config.goSalary });
     }
@@ -243,8 +286,7 @@ export function createEngine(rules: Rules): Engine {
 
   function resolve(state: GameState, events: GameEvent[]): void {
     const me = state.turn.active;
-    const p = state.players[me]!;
-    const t = tiles[p.position]!;
+    const t = tiles[state.players[me]!.position]!;
     events.push({ type: 'landed', player: me, tileId: t.id });
     state.turn.phase = 'MANAGE';
 
@@ -267,18 +309,16 @@ export function createEngine(rules: Rules): Engine {
       }
       const total = (state.turn.lastDice ?? []).reduce((a, b) => a + b, 0);
       const amount = rentFor(state, t.id, total);
-      // S1 STUB (D-24): no DEBT state yet, so cash may go below zero.
-      p.cash -= amount;
-      state.players[owned.owner]!.cash += amount;
-      events.push({ type: 'rentPaid', from: me, to: owned.owner, tileId: t.id, amount });
+      if (pay(state, events, me, { kind: 'player', player: owned.owner }, amount, 'rent')) {
+        events.push({ type: 'rentPaid', from: me, to: owned.owner, tileId: t.id, amount });
+      }
       return;
     }
 
     if (t.type === 'tax') {
       const amount = config.tax[t.tax!];
       if (amount === undefined) throw new Error(`No tax amount for ${t.tax}`);
-      p.cash -= amount; // S1 STUB (D-24): may go below zero.
-      events.push({ type: 'taxPaid', player: me, tileId: t.id, amount });
+      if (pay(state, events, me, { kind: 'bank' }, amount, 'tax')) events.push({ type: 'taxPaid', player: me, tileId: t.id, amount });
       return;
     }
 
@@ -291,9 +331,9 @@ export function createEngine(rules: Rules): Engine {
     if (t.type === 'corner' && t.corner === 'go_to_jam') sendToJam(state, events, 'goToJamTile');
   }
 
-  function sendToJam(state: GameState, events: GameEvent[], reason: 'threeDoubles' | 'goToJamTile'): void {
+  function sendToJam(state: GameState, events: GameEvent[], reason: 'threeDoubles' | 'goToJamTile' | 'card'): void {
     const me = state.turn.active;
-    const p: PlayerState = state.players[me]!;
+    const p = state.players[me]!;
     // D-23: a direct jump, never pays the salary.
     p.position = rules.jamPos;
     p.inJam = true;
@@ -305,18 +345,26 @@ export function createEngine(rules: Rules): Engine {
 
   function endTurn(state: GameState, events: GameEvent[]): void {
     const me = state.turn.active;
-    if (state.turn.extraRoll && !state.players[me]!.inJam) {
+    if (state.turn.extraRoll && !state.players[me]!.inJam && !state.players[me]!.bankrupt) {
       // FR-02, D-14: extra roll after MANAGE.
       state.turn.extraRoll = false;
       state.turn.phase = 'ROLL';
       events.push({ type: 'extraRoll', player: me });
       return;
     }
-    const next = (me + 1) % state.players.length;
+    passTurn(state, events);
+  }
+
+  function passTurn(state: GameState, events: GameEvent[]): void {
+    const me = state.turn.active;
+    const n = state.players.length;
+    let next = (me + 1) % n;
+    while (state.players[next]!.bankrupt && next !== me) next = (next + 1) % n;
     state.turn = { active: next, phase: 'START_TURN', doublesThisTurn: 0, extraRoll: false, lastDice: null, pendingTile: null };
     state.turnCount += 1;
     events.push({ type: 'turnPassed', from: me, to: next });
   }
 
+  void alive;
   return { rules, newGame, legalActions, step, rentFor };
 }

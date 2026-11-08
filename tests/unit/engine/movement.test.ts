@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edit, engine, newGame, ofType, ready, rollAs, step } from './helpers';
+import { edit, engine, newGame, ofType, ready, rollAs, step, actionTypes } from './helpers';
 
 const start = () => ready(newGame(3, 7).state);
 
@@ -47,7 +47,7 @@ describe('dice, movement and GO (FR-01, FR-02, R-13 to R-16)', () => {
     r = step(r.state, { type: 'END_TURN' });
     expect(r.state.turn.active).toBe(me);
     expect(r.state.turn.phase).toBe('ROLL');
-    expect(engine.legalActions(r.state)).toEqual([{ type: 'ROLL' }]);
+    expect(actionTypes(engine.legalActions(r.state))).toEqual(['ROLL']);
     expect(ofType(r.events, 'extraRoll')).toHaveLength(1);
   });
 
