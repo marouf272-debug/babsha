@@ -33,9 +33,9 @@ describe('config.json economy (plan 2.3 and 2.4)', () => {
   it('FR-04: auction opens at 0 with a minimum raise of 100', () => {
     expect(config.auction).toEqual({ openingBid: 0, minRaise: 100 });
   });
-  it('FR-10: Jam fine 500, forced after 3 failed turns (fine and City Tax are plan assumptions)', () => {
+  it('FR-10, D-18: Jam fine 500 forced after 3 failed turns, City Tax 1000', () => {
     expect(config.jam).toEqual({ fine: 500, maxFailedTurns: 3 });
     expect(config.tax.city).toBe(1000);
-    expect(Object.keys(config.assumptions)).toEqual(['jam.fine', 'tax.city']);
+    expect(config).not.toHaveProperty('assumptions');
   });
 });

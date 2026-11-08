@@ -1,5 +1,5 @@
 {
-  "status": "From plan sections 2.3 and 2.4 (approved), except values marked as assumptions in plan Appendix C.",
+  "status": "From plan sections 2.3 and 2.4. Jam fine and City Tax approved 2026-11-08 (D-18).",
   "currency": {
     "code": "BDT",
     "symbol": "৳"
@@ -57,9 +57,5 @@
   "auction": {
     "openingBid": 0,
     "minRaise": 100
-  },
-  "assumptions": {
-    "jam.fine": "Plan Appendix C assumption, awaiting owner confirmation.",
-    "tax.city": "Plan Appendix C assumption, awaiting owner confirmation."
   }
 }

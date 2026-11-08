@@ -65,13 +65,25 @@ describe('tiles.json (FR-01 board, plan 2.3 and 3.9)', () => {
     }
   });
 
-  it('proposal: the most expensive property costs 4,000 Taka and prices never fall along the board', () => {
+  it('D-13: the most expensive property costs 4,000 Taka and prices never fall along the board', () => {
     const prices = props.map((p) => p.price!);
     expect(Math.max(...prices)).toBe(4000);
     for (let i = 1; i < prices.length; i++) expect(prices[i]!).toBeGreaterThanOrEqual(prices[i - 1]!);
   });
 
-  it('proposal numbers are marked as proposals, not final', () => {
-    expect(tilesDoc.status).toMatch(/^PROPOSAL/);
+  it('D-13: unbuilt, 1 and 2 house rents follow the approved base formula', () => {
+    for (const p of props) {
+      const base = Math.round((p.price! / 10 - 40) / 10) * 10;
+      expect(p.rent!.slice(0, 3), p.id).toEqual([base, 5 * base, 15 * base]);
+    }
+  });
+
+  it('D-13: 3 houses, 4 houses and hotel rents are 3, 4 and 5 times the price', () => {
+    for (const p of props) expect(p.rent!.slice(3), p.id).toEqual([3 * p.price!, 4 * p.price!, 5 * p.price!]);
+  });
+
+  it('D-13: status records the approval and that hotel cost is still open', () => {
+    expect(tilesDoc.status).toMatch(/^APPROVED/);
+    expect(tilesDoc.status).toContain('Q-03');
   });
 });

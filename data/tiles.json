@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSAL. Property prices, house costs, hotel costs and rents are proposals awaiting owner approval. Not final.",
+  "status": "APPROVED 2026-11-08 (D-13): property prices, house costs and rents. hotelCost is still a proposal pending Q-03. Values may change through S3 tuning.",
   "rentFormula": "base = price / 10 - 40; 1 house = 5 x base; 2 houses = 15 x base; 3 houses = 3 x price; 4 houses = 4 x price; hotel = 5 x price. Rounded to the nearest 10 Taka.",
   "rentIndex": [
     "unbuilt",

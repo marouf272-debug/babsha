@@ -1,12 +1,13 @@
 # Babsha rules
 
-Status: DRAFT for owner approval (sprint S0). Source: docs/PLAN.md sections 2.1 to 2.4, plus the turn states in section 3.2 and the board in section 3.9.
+Status: APPROVED by the owner on 2026-11-08 (sprint S0), with answers D-13 to D-20 in docs/DECISIONS.md applied. Source: docs/PLAN.md sections 2.1 to 2.4, plus the turn states in section 3.2 and the board in section 3.9.
 
 How to read this document:
 
 - Every rule has an ID (R-xx) and names its source: a requirement ID from plan 2.1, or a plan section.
 - This document contains only rules stated in the plan. Where the plan is silent or unclear, the rule says so and points to an open question (Q-xx) in docs/DECISIONS.md. Those gaps are not filled here.
-- Numbers come from data/config.json and data/tiles.json. Property prices, house costs and rents are proposals and are not approved yet (Q-01).
+- Numbers come from data/config.json and data/tiles.json. Property prices, house costs and rents are approved (D-13) and may still be tuned in S3.
+- Rules added from owner answers name their decision ID (D-xx).
 - I do not have your original Business spec. Where the plan cites "Spec N", I only know what the plan says about it.
 
 ## 1. Board
@@ -22,7 +23,7 @@ How to read this document:
 - **R-06** A game has 2 to 6 players. (FR-01)
 - **R-07** Each player starts with ৳10,000. Starting cash can be changed in game settings. (plan 2.4, FR-14)
 - **R-08** Tokens: Rickshaw, CNG auto, Ilish, kite, tea cup, bus. HUD colors: Red, Blue, Green, Yellow, Purple, Cyan. (plan 2.4)
-- **R-09** Who takes the first turn is not stated in the plan. (Q-18)
+- **R-09** To choose who goes first, each player rolls the two dice. The highest total goes first. Tied players re-roll among themselves. Play then continues clockwise in seat order from the first player. (D-17)
 
 ## 3. Turn sequence
 
@@ -33,9 +34,9 @@ How to read this document:
 ## 4. Dice, doubles and movement
 
 - **R-13** The active player rolls two six-sided dice and moves clockwise by their sum. (FR-01)
-- **R-14** Rolling doubles gives an extra roll. (FR-02) When the extra roll happens is unclear: FR-02 says "immediate", while plan 3.2 places it at END_TURN after MANAGE. (Q-04)
+- **R-14** Rolling doubles gives an extra roll. (FR-02) The extra roll happens at END_TURN, after the player has resolved the tile and had the chance to manage (build, sell, mortgage, redeem, trade). (plan 3.2, D-14)
 - **R-15** Rolling doubles three times in a row sends the player to Jam. (FR-02, plan 3.2)
-- **R-16** Passing GO pays the salary of ৳2,000. (plan 2.4, plan 3.2) Whether landing exactly on GO also pays is not stated. (Q-05)
+- **R-16** Passing GO or landing exactly on GO pays the salary of ৳2,000, once per move. (plan 2.4, plan 3.2, D-15)
 
 ## 5. Landing on a tile
 
@@ -57,12 +58,13 @@ How to read this document:
 - **R-24** Rent on an unbuilt property doubles when its owner holds the full color set. (FR-05, plan 2.3)
 - **R-25** Transport hub rent depends on how many hubs the owner holds: ৳250, ৳500, ৳1,000 or ৳2,000 for 1, 2, 3 or 4 hubs. (FR-05, plan 2.4)
 - **R-26** Utility rent is the dice total times ৳40 if the owner holds one utility, or times ৳100 if the owner holds both. (FR-05, plan 2.4)
-- **R-27** Not stated: rent on a mortgaged property (Q-09), set doubling when one property in the set is mortgaged (Q-10), and whether an owner in Jam collects rent (Q-08).
+- **R-27** A mortgaged property collects no rent. (D-16)
+- **R-27a** Not stated: set doubling when one property in the set is mortgaged (Q-10), and whether an owner in Jam collects rent (Q-08).
 
 ### 5.4 Tax tiles
 
 - **R-28** Super Tax (position 4) charges a flat ৳1,000. (plan 2.4, plan 3.9)
-- **R-29** City Tax (position 38) charges a flat ৳1,000. This amount is an assumption in the plan, awaiting your confirmation. (plan 3.9, Appendix C)
+- **R-29** City Tax (position 38) charges a flat ৳1,000. (plan 3.9, D-18)
 
 ### 5.5 Card tiles
 
@@ -84,7 +86,7 @@ How to read this document:
 - **R-39** Buildings sell back to the bank at 50 percent of their cost, following the even rule in reverse. (FR-06)
 - **R-40** House supply is unlimited. (plan 2.3)
 - **R-41** No property in a set may carry buildings while any property in that set is mortgaged. (plan 4.3, S2 invariant "no buildings on mortgaged sets"; Q-12)
-- **R-42** Not stated: hotel cost and what selling a hotel returns. (Q-03) House costs are proposals. (Q-01)
+- **R-42** House costs are set per color group in data/tiles.json. (D-13) Not stated: hotel cost and what selling a hotel returns. (Q-03)
 
 ## 7. Mortgage
 
@@ -101,7 +103,7 @@ How to read this document:
 ## 9. Jam
 
 - **R-49** A player goes to Jam by rolling a third double (R-15), landing on Go to Jam (R-35), or by a card. (FR-02, FR-10)
-- **R-50** To leave Jam, a player pays a fine of ৳500, rolls doubles, or uses a held card. The fine is an assumption in the plan, awaiting your confirmation. (plan 2.3, Appendix C)
+- **R-50** To leave Jam, a player pays a fine of ৳500, rolls doubles, or uses a held card. (plan 2.3, D-18)
 - **R-51** After 3 failed turns in Jam, the fine is forced. (plan 2.3) What happens next on that turn is not stated. (Q-06)
 - **R-52** A player in Jam does not take the doubles extra roll. (plan 3.2, END_TURN "and is not in Jam") Whether leaving Jam by doubles gives an extra roll is not stated. (Q-07)
 
@@ -140,13 +142,13 @@ All amounts are the spec amounts times 10. (plan 2.4)
 | Utility price | ৳1,500 | plan 2.4 |
 | Utility rent | dice x ৳40 (one), dice x ৳100 (both) | plan 2.4 |
 | Super Tax | ৳1,000 | plan 2.4 |
-| City Tax | ৳1,000 (assumption) | plan 3.9, Appendix C |
-| Jam fine | ৳500 (assumption) | plan 2.3, Appendix C |
+| City Tax | ৳1,000 | plan 3.9, D-18 |
+| Jam fine | ৳500 | plan 2.3, D-18 |
 | Mortgage value | 50 percent of face value | FR-07 |
 | Redeem cost | principal plus 10 percent | FR-07 |
 | Building sell back | 50 percent | FR-06 |
 | Auction | opens at ৳0, minimum raise ৳100 | plan 2.3 |
-| Property prices, house costs, rents | proposals in data/tiles.json | Q-01 |
+| Property prices, house costs, rents | data/tiles.json, rent formula in D-13 | D-13 |
 
 ## 14. Content mapping
 
