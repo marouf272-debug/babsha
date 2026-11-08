@@ -1,0 +1,505 @@
+// The game screen (S4 greybox): setup, top strip, board, player strip, log, action bar and the
+// sheets for deed, auction, manage, trade, cards, debt, hand-off and game over (plan 3.5).
+// All text comes from the language files; all rules come from the engine.
+
+import { emptyMemory, type Ai, type AiMemory, type AiProfile } from '../ai';
+import type { Action, Card, Engine, GameEvent, GameState, Tile, TradeOffer } from '../engine';
+import { getLang, money, num, setLang, t } from '../i18n';
+import { BoardScene, type SceneText } from '../scene/board';
+import type { SceneConfig } from '../scene/config';
+import { describeEvent, playerName, tileName } from './describe';
+import { h } from './dom';
+import { Session, type SeatKind } from './session';
+
+export interface AppOptions {
+  root: HTMLElement;
+  engine: Engine;
+  ai: Ai;
+  profiles: Record<'easy' | 'medium' | 'hard', AiProfile>;
+  sceneConfig: SceneConfig;
+  test: boolean;
+}
+
+interface TradeDraft {
+  to: number | null;
+  give: Set<string>;
+  get: Set<string>;
+  giveCash: number;
+  getCash: number;
+  error: boolean;
+}
+
+const SEAT_KINDS: SeatKind[] = ['human', 'easy', 'medium', 'hard'];
+const FONT = '"Noto Sans Bengali", system-ui, sans-serif';
+
+export class App {
+  private session: Session | null = null;
+  private scene: BoardScene | null = null;
+  private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[] };
+  private panel: 'manage' | 'trade' | null = null;
+  private draft: TradeDraft = emptyDraft();
+  private log: string[] = [];
+  private cards: Array<{ player: number; deck: 'lucky' | 'dohs'; cardId: string }> = [];
+  private revealedTrade: string | null = null;
+  private confirmBankrupt = false;
+  private playing: Promise<void> = Promise.resolve();
+  private readonly els: Record<string, HTMLElement> = {};
+  private suggestMemory: AiMemory = emptyMemory();
+  private suggestRng = 7;
+
+  constructor(private readonly o: AppOptions) {
+    document.documentElement.lang = getLang();
+    this.renderSetup();
+  }
+
+  // Test mode only: the move the Medium computer player would make for the human who must act.
+  // The end-to-end test then presses the matching button, so a whole game runs through the UI.
+  suggest(): Action | null {
+    const session = this.session;
+    if (!session) return null;
+    const who = session.actor();
+    if (who === null || !session.isHuman(who)) return null;
+    const d = this.o.ai.decide({ state: session.state, player: who, profile: this.o.profiles.medium, memory: this.suggestMemory, rng: this.suggestRng });
+    this.suggestMemory = d.memory;
+    this.suggestRng = d.rng;
+    return d.action;
+  }
+
+  // ---------- setup ----------
+
+  private renderSetup(): void {
+    this.scene?.dispose();
+    this.scene = null;
+    this.session = null;
+    const { root } = this.o;
+    root.replaceChildren();
+    const seats = h('div', { class: 'seats' });
+    for (let i = 0; i < this.setup.count; i++) {
+      const select = h('select', { 'data-testid': `seat-${i}`, onchange: (e) => { this.setup.seats[i] = (e.target as HTMLSelectElement).value as SeatKind; } });
+      for (const k of SEAT_KINDS) select.append(h('option', { value: k, selected: this.setup.seats[i] === k }, t(`seat.${k}`)));
+      seats.append(h('label', { class: 'seat' }, h('span', { class: 'swatch', style: `background:${this.color(i)}` }), h('span', { class: 'seat-name' }, playerName(i)), select));
+    }
+    const counts = h('div', { class: 'counts', role: 'group' });
+    for (let n = this.o.engine.rules.config.players.min; n <= this.o.engine.rules.config.players.max; n++) {
+      counts.append(h('button', { class: n === this.setup.count ? 'chip on' : 'chip', 'data-testid': `count-${n}`, onclick: () => { this.setup.count = n; this.renderSetup(); } }, num(n)));
+    }
+    root.append(h('div', { class: 'setup' },
+      h('div', { class: 'setup-top' }, h('h1', {}, t('app.title')), this.langButton()),
+      h('h2', {}, t('setup.heading')),
+      h('div', { class: 'field-label' }, t('setup.players')),
+      counts,
+      seats,
+      h('button', { class: 'primary big', 'data-testid': 'start', onclick: () => this.start() }, t('setup.start')),
+    ));
+    document.title = t('app.title');
+  }
+
+  private start(): void {
+    const seats = this.setup.seats.slice(0, this.setup.count);
+    const seed = this.o.test ? 4242 : (Date.now() & 0x7fffffff);
+    this.session = new Session({
+      engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats, seed,
+      aiDelayMs: this.o.test ? 0 : 650,
+      // Computer moves wait for the board animation to finish.
+      schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
+    });
+    this.log = [];
+    this.cards = [];
+    this.panel = null;
+    this.draft = emptyDraft();
+    this.buildGameShell();
+    this.session.subscribe((u) => this.onUpdate(u.state, u.events));
+    this.session.start();
+  }
+
+  // ---------- game shell ----------
+
+  private buildGameShell(): void {
+    const { root } = this.o;
+    root.replaceChildren();
+    const canvas = h('canvas', { class: 'board', 'data-testid': 'board' });
+    const names = ['top', 'players', 'log', 'actions', 'sheet', 'overlay'];
+    for (const n of names) this.els[n] = h('div', { class: n });
+    root.append(h('div', { class: 'game' },
+      this.els['top']!,
+      h('div', { class: 'board-wrap' }, canvas),
+      this.els['players']!,
+      this.els['log']!,
+      this.els['actions']!,
+      this.els['sheet']!,
+      this.els['overlay']!,
+    ));
+    this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), this.o.test);
+    new ResizeObserver(() => this.scene?.resize()).observe(canvas);
+  }
+
+  private sceneText(): SceneText {
+    const rules = this.o.engine.rules;
+    return {
+      font: FONT,
+      tileName: (tile: Tile) => t(tile.nameKey),
+      tileNote: (tile: Tile) => {
+        if (tile.type === 'property' || tile.type === 'hub' || tile.type === 'utility') return money(this.o.engine.quote(this.session!.state, tile.id).price);
+        if (tile.type === 'tax') return money(rules.config.tax[tile.tax!] ?? 0);
+        return '';
+      },
+    };
+  }
+
+  private onUpdate(state: GameState, events: GameEvent[]): void {
+    for (const e of events) {
+      const line = describeEvent(e, state, this.o.engine.rules);
+      if (line) this.log.push(line);
+      if (e.type === 'cardDrawn') this.cards.push({ player: e.player, deck: e.deck, cardId: e.cardId });
+      if (e.type === 'turnPassed' || e.type === 'tradeAccepted' || e.type === 'tradeRejected') this.panel = null;
+    }
+    this.log = this.log.slice(-40);
+    this.confirmBankrupt = false;
+    // Computer card draws are shown briefly; a human dismisses their own card.
+    const scene = this.scene;
+    this.playing = this.playing.then(() => scene?.play(events, state));
+    this.render();
+  }
+
+  render(): void {
+    if (!this.session) return this.renderSetup();
+    const s = this.session.state;
+    this.renderTop(s);
+    this.renderPlayers(s);
+    this.els['log']!.replaceChildren(...this.log.slice(-2).map((l) => h('div', { class: 'log-line' }, l)));
+    this.renderActions(s);
+    this.renderSheet(s);
+    this.renderOverlay(s);
+  }
+
+  private langButton(): HTMLElement {
+    return h('button', { class: 'chip', 'data-testid': 'lang', onclick: () => this.toggleLang() }, t('lang.toggle'));
+  }
+
+  private toggleLang(): void {
+    setLang(getLang() === 'en' ? 'bn' : 'en');
+    document.documentElement.lang = getLang();
+    document.title = t('app.title');
+    try { localStorage.setItem('babsha.lang', getLang()); } catch { /* storage may be blocked */ }
+    if (this.session) this.log = []; // old lines were in the other language
+    this.scene?.refreshText();
+    this.render();
+  }
+
+  private renderTop(s: GameState): void {
+    const label = s.turn.phase === 'GAME_OVER' ? t('over.title', { name: playerName(s.winner!) }) : t('hud.turn', { name: playerName(s.turn.active) });
+    this.els['top']!.replaceChildren(
+      h('div', { class: 'turn', 'data-testid': 'turn' }, label),
+      this.langButton(),
+      h('button', { class: 'chip', 'data-testid': 'new-game', onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, t('menu.newGame')),
+    );
+  }
+
+  private renderPlayers(s: GameState): void {
+    const session = this.session!;
+    this.els['players']!.replaceChildren(...s.players.map((p, i) => h('div', {
+      class: `player${i === s.turn.active ? ' active' : ''}${p.bankrupt ? ' out' : ''}`, 'data-testid': `player-${i}`,
+    },
+    h('span', { class: 'swatch', style: `background:${this.color(i)}` }),
+    h('span', { class: 'pname' }, playerName(i)),
+    h('span', { class: 'cash' }, money(p.cash)),
+    h('span', { class: 'flags' }, p.bankrupt ? t('hud.bankrupt') : p.inJam ? t('hud.inJam') : session.isHuman(i) ? '' : t(`seat.${session.seats[i]}`)),
+    )));
+  }
+
+  // ---------- action bar ----------
+
+  private renderActions(s: GameState): void {
+    const session = this.session!;
+    const bar = this.els['actions']!;
+    const who = session.actor();
+    if (who === null || s.turn.phase === 'GAME_OVER') return bar.replaceChildren();
+    if (!session.isHuman(who)) return bar.replaceChildren(h('div', { class: 'thinking' }, t('hud.thinking', { name: playerName(who) })));
+    const legal = session.legalFor(who);
+    const has = (type: Action['type']) => legal.some((a) => a.type === type);
+    const btns: HTMLElement[] = [];
+    if (s.turn.phase === 'ROLL') {
+      btns.push(this.actButton(t('action.roll'), { type: 'ROLL' }, 'primary'));
+      if (has('PAY_JAM_FINE')) btns.push(this.actButton(t('action.payFine', { amount: money(this.o.engine.rules.config.jam.fine) }), { type: 'PAY_JAM_FINE' }));
+      if (has('USE_JAM_CARD')) btns.push(this.actButton(t('action.useCard'), { type: 'USE_JAM_CARD' }));
+    } else if (s.turn.phase === 'MANAGE' && !s.trade) {
+      btns.push(h('button', { 'data-testid': 'open-manage', onclick: () => { this.panel = this.panel === 'manage' ? null : 'manage'; this.render(); } }, t('action.manage')));
+      btns.push(h('button', { 'data-testid': 'open-trade', onclick: () => { this.panel = this.panel === 'trade' ? null : 'trade'; this.draft = emptyDraft(); this.render(); } }, t('action.trade')));
+      btns.push(this.actButton(t('action.endTurn'), { type: 'END_TURN' }, 'primary'));
+    }
+    bar.replaceChildren(...btns);
+  }
+
+  private actButton(label: string, action: Action, cls = '', disabled = false): HTMLElement {
+    return h('button', {
+      class: cls, disabled, 'data-action': JSON.stringify(action),
+      onclick: () => this.act(action),
+    }, label);
+  }
+
+  private act(action: Action): void {
+    try {
+      this.session!.act(action);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ---------- sheets ----------
+
+  private renderSheet(s: GameState): void {
+    const sheet = this.els['sheet']!;
+    const session = this.session!;
+    const who = session.actor();
+    sheet.replaceChildren();
+    sheet.hidden = true;
+    if (who === null || !session.isHuman(who) || s.turn.phase === 'GAME_OVER' || this.cards.length || this.needsHandoff(s, who)) return;
+    let body: HTMLElement | null = null;
+    if (s.trade && s.trade.to === who) body = this.tradeAnswer(s, s.trade);
+    else if (s.turn.phase === 'BUY_DECISION') body = this.deedSheet(s, who);
+    else if (s.turn.phase === 'AUCTION') body = this.auctionSheet(s, who);
+    else if (s.turn.phase === 'DEBT' && this.panel === 'trade') body = this.tradeSheet(s, who);
+    else if (s.turn.phase === 'DEBT') body = this.debtSheet(s, who);
+    else if (s.turn.phase === 'MANAGE' && this.panel === 'manage') body = this.manageSheet(s, who, true);
+    else if (s.turn.phase === 'MANAGE' && this.panel === 'trade') body = this.tradeSheet(s, who);
+    if (body) {
+      sheet.hidden = false;
+      sheet.append(body);
+    }
+  }
+
+  private deedSheet(s: GameState, who: number): HTMLElement {
+    const id = s.turn.pendingTile!;
+    const q = this.o.engine.quote(s, id);
+    const canBuy = this.session!.legalFor(who).some((a) => a.type === 'BUY');
+    return h('div', { 'data-testid': 'deed' },
+      this.deedCard(this.tile(id)),
+      h('div', { class: 'row' },
+        this.actButton(t('deed.buy', { amount: money(q.price) }), { type: 'BUY' }, 'primary', !canBuy),
+        this.actButton(t('deed.auction'), { type: 'DECLINE' }),
+      ));
+  }
+
+  // FR-03: price, mortgage value and rent schedule.
+  private deedCard(tile: Tile): HTMLElement {
+    const rules = this.o.engine.rules;
+    const q = this.o.engine.quote(this.session!.state, tile.id);
+    const rows: Array<[string, string]> = [];
+    if (tile.type === 'property') {
+      tile.rent!.forEach((r, i) => rows.push([t(`deed.level.${i}`), money(r)]));
+    } else if (tile.type === 'hub') {
+      rules.config.hub.rentByHubsOwned.forEach((r, i) => rows.push([t('deed.owning', { n: num(i + 1) }), money(r)]));
+    } else {
+      rules.config.utility.diceMultiplierByUtilitiesOwned.forEach((m, i) => rows.push([t('deed.owning', { n: num(i + 1) }), t('deed.diceTimes', { n: num(m) })]));
+    }
+    return h('div', { class: 'deed' },
+      h('div', { class: 'deed-head', style: tile.group ? `background:${this.o.sceneConfig.colors.groups[tile.group]}` : '' },
+        tile.group ? `${this.o.sceneConfig.groupSymbols[tile.group]} ` : '', t(tile.nameKey)),
+      h('div', { class: 'kv' }, h('span', {}, t('deed.price')), h('span', {}, money(q.price))),
+      h('div', { class: 'kv' }, h('span', {}, t('deed.mortgage')), h('span', {}, money(q.mortgageValue))),
+      h('div', { class: 'kv sub' }, h('span', {}, t('deed.rent'))),
+      ...rows.map(([a, b]) => h('div', { class: 'kv' }, h('span', {}, a), h('span', {}, b))),
+      tile.type === 'property' ? h('div', { class: 'note' }, t('deed.fullSet')) : null,
+    );
+  }
+
+  // FR-04, D-62: one bidder at a time.
+  private auctionSheet(s: GameState, who: number): HTMLElement {
+    const a = s.auction!;
+    const legal = this.session!.legalFor(who);
+    const bid = legal.find((x) => x.type === 'BID') as Extract<Action, { type: 'BID' }> | undefined;
+    const cash = s.players[who]!.cash;
+    const quick = bid ? [bid.amount, bid.amount + 500, bid.amount + 1000].filter((v, i, arr) => v <= cash && arr.indexOf(v) === i) : [];
+    const slider = bid ? h('input', { type: 'range', min: bid.amount, max: cash, step: 100, value: bid.amount, 'data-testid': 'bid-slider' }) as HTMLInputElement : null;
+    const sliderBtn = slider ? h('button', { 'data-testid': 'bid-custom', onclick: () => this.act({ type: 'BID', player: who, amount: Number(slider.value) }) }, t('auction.bid', { amount: money(Number(slider.value)) })) : null;
+    if (slider && sliderBtn) slider.addEventListener('input', () => { sliderBtn.textContent = t('auction.bid', { amount: money(Number(slider.value)) }); });
+    return h('div', { 'data-testid': 'auction' },
+      h('h3', {}, t('auction.title', { tile: tileName(this.o.engine.rules, a.tileId) })),
+      h('div', { class: 'status' }, a.highBidder === null ? t('auction.none') : t('auction.high', { amount: money(a.highBid!), name: playerName(a.highBidder) })),
+      h('div', { class: 'who' }, t('auction.yourBid', { name: playerName(who) })),
+      h('div', { class: 'row wrap' }, ...quick.map((v) => this.actButton(t('auction.bid', { amount: money(v) }), { type: 'BID', player: who, amount: v }, v === quick[0] ? 'primary' : ''))),
+      slider ? h('div', { class: 'row' }, slider, sliderBtn) : null,
+      h('div', { class: 'row' }, this.actButton(t('auction.fold'), { type: 'FOLD', player: who })),
+    );
+  }
+
+  // FR-06, FR-07: build, sell, mortgage and redeem per property.
+  private manageSheet(s: GameState, who: number, closable: boolean): HTMLElement {
+    const legal = this.session!.legalFor(who);
+    const mine = this.o.engine.rules.tiles.filter((x) => s.properties[x.id]?.owner === who);
+    const rows = mine.map((tile) => {
+      const prop = s.properties[tile.id]!;
+      const q = this.o.engine.quote(s, tile.id);
+      const can = (type: Action['type']) => legal.some((a) => a.type === type && 'tileId' in a && a.tileId === tile.id);
+      const level = prop.mortgaged ? t('manage.mortgaged') : tile.type === 'property' ? t(`deed.level.${Math.min(prop.houses, 5)}`) : '';
+      const btns: HTMLElement[] = [];
+      if (can('BUILD')) btns.push(this.actButton(t('manage.build', { amount: money(q.buildCost!) }), { type: 'BUILD', tileId: tile.id }));
+      if (can('SELL_BUILDING')) btns.push(this.actButton(t('manage.sell', { amount: money(q.sellRefund!) }), { type: 'SELL_BUILDING', tileId: tile.id }));
+      if (can('MORTGAGE')) btns.push(this.actButton(t('manage.mortgage', { amount: money(q.mortgageValue) }), { type: 'MORTGAGE', tileId: tile.id }));
+      if (can('REDEEM')) btns.push(this.actButton(t('manage.redeem', { amount: money(q.redeemCost) }), { type: 'REDEEM', tileId: tile.id }));
+      return h('div', { class: 'prop' },
+        h('div', { class: 'prop-name' }, tile.group ? h('span', { class: 'swatch', style: `background:${this.o.sceneConfig.colors.groups[tile.group]}` }) : null, t(tile.nameKey), h('span', { class: 'level' }, level)),
+        h('div', { class: 'row wrap' }, ...btns));
+    });
+    return h('div', { 'data-testid': 'manage' },
+      h('h3', {}, t('manage.title', { name: playerName(who) })),
+      rows.length ? h('div', { class: 'props' }, ...rows) : h('div', { class: 'note' }, t('manage.none')),
+      closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.render(); } }, t('action.close'))) : null,
+    );
+  }
+
+  // FR-08: compose an offer.
+  private tradeSheet(s: GameState, who: number): HTMLElement {
+    const d = this.draft;
+    const others = s.players.map((_, i) => i).filter((i) => i !== who && !s.players[i]!.bankrupt);
+    const pick = h('div', { class: 'row wrap' }, ...others.map((o) => h('button', {
+      class: d.to === o ? 'chip on' : 'chip', 'data-testid': `trade-to-${o}`,
+      onclick: () => { this.draft = { ...emptyDraft(), to: o }; this.render(); },
+    }, h('span', { class: 'swatch', style: `background:${this.color(o)}` }), playerName(o))));
+    const tileList = (owner: number, set: Set<string>, side: 'give' | 'get') => h('div', { class: 'checks' },
+      ...this.o.engine.rules.tiles.filter((x) => s.properties[x.id]?.owner === owner).map((tile) => {
+        const box = h('input', { type: 'checkbox', checked: set.has(tile.id), 'data-testid': `trade-${side}-${tile.id}`, onchange: () => { if (set.has(tile.id)) set.delete(tile.id); else set.add(tile.id); d.error = false; } });
+        return h('label', { class: 'check' }, box, t(tile.nameKey));
+      }));
+    const cashInput = (key: 'giveCash' | 'getCash', max: number) => h('input', {
+      type: 'number', min: 0, max, step: 100, value: d[key], inputmode: 'numeric', 'data-testid': `trade-${key}`,
+      oninput: (e) => { d[key] = Math.max(0, Math.floor(Number((e.target as HTMLInputElement).value) || 0)); d.error = false; },
+    });
+    const body = h('div', { 'data-testid': 'trade' }, h('h3', {}, t('trade.title')), h('div', { class: 'field-label' }, t('trade.with')), pick);
+    if (d.to === null) {
+      body.append(h('div', { class: 'note' }, t('trade.choose')));
+    } else {
+      body.append(
+        h('div', { class: 'cols' },
+          h('div', {}, h('div', { class: 'field-label' }, t('trade.give')), tileList(who, d.give, 'give'), h('label', { class: 'cash-in' }, t('trade.cash'), cashInput('giveCash', s.players[who]!.cash))),
+          h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(d.to) })), tileList(d.to, d.get, 'get'), h('label', { class: 'cash-in' }, t('trade.cash'), cashInput('getCash', s.players[d.to]!.cash))),
+        ),
+        h('div', { class: 'error', hidden: !d.error }, d.error ? t('trade.invalid') : ''),
+        h('div', { class: 'row' }, h('button', { class: 'primary', 'data-testid': 'trade-propose', onclick: () => this.propose(who) }, t('trade.propose'))),
+      );
+    }
+    body.append(h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.render(); } }, t('action.cancel'))));
+    return body;
+  }
+
+  private propose(who: number): void {
+    const d = this.draft;
+    if (d.to === null) return;
+    const offer: Omit<TradeOffer, 'from'> = { to: d.to, giveTiles: [...d.give], getTiles: [...d.get], giveCash: d.giveCash, getCash: d.getCash };
+    if (this.session!.tradeProblem(offer) !== null) {
+      d.error = true;
+      this.render();
+      return;
+    }
+    this.panel = null;
+    this.act({ type: 'PROPOSE_TRADE', player: who, offer });
+  }
+
+  private tradeAnswer(s: GameState, o: TradeOffer): HTMLElement {
+    const list = (ids: string[], cash: number) => {
+      const items = [...ids.map((id) => tileName(this.o.engine.rules, id)), ...(cash > 0 ? [money(cash)] : [])];
+      return h('ul', {}, ...(items.length ? items : [t('trade.nothing')]).map((x) => h('li', {}, x)));
+    };
+    return h('div', { 'data-testid': 'trade-answer' },
+      h('h3', {}, t('trade.offerFrom', { name: playerName(o.from) })),
+      h('div', { class: 'cols' },
+        h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(o.from) })), list(o.giveTiles, o.giveCash)),
+        h('div', {}, h('div', { class: 'field-label' }, t('trade.give')), list(o.getTiles, o.getCash)),
+      ),
+      h('div', { class: 'row' },
+        this.actButton(t('trade.accept'), { type: 'ACCEPT_TRADE', player: o.to }, 'primary'),
+        this.actButton(t('trade.reject'), { type: 'REJECT_TRADE', player: o.to })),
+    );
+  }
+
+  // FR-11: what is owed, how to raise cash, pay or declare bankruptcy.
+  private debtSheet(s: GameState, who: number): HTMLElement {
+    const debt = s.debts[0]!;
+    const legal = this.session!.legalFor(who);
+    const to = debt.creditor.kind === 'player' ? t('debt.toPlayer', { name: playerName(debt.creditor.player) }) : debt.creditor.kind === 'bank' ? t('debt.toBank') : t('debt.toEach');
+    const canPay = legal.some((a) => a.type === 'PAY_DEBT');
+    return h('div', { 'data-testid': 'debt' },
+      h('h3', {}, t('debt.title', { name: playerName(who), amount: money(debt.amount) })),
+      h('div', { class: 'status' }, to),
+      h('div', { class: 'note' }, t('debt.raise')),
+      this.manageSheet(s, who, false),
+      h('div', { class: 'row wrap' },
+        this.actButton(t('debt.pay', { amount: money(debt.amount) }), { type: 'PAY_DEBT' }, 'primary', !canPay),
+        h('button', { 'data-testid': 'open-trade-debt', onclick: () => { this.panel = 'trade'; this.draft = emptyDraft(); this.render(); } }, t('action.trade')),
+        this.confirmBankrupt
+          ? this.actButton(t('debt.confirm'), { type: 'DECLARE_BANKRUPTCY' }, 'danger')
+          : h('button', { class: 'danger', 'data-testid': 'bankrupt', onclick: () => { this.confirmBankrupt = true; this.render(); } }, t('debt.bankrupt')),
+      ));
+  }
+
+  // ---------- overlays ----------
+
+  private needsHandoff(s: GameState, who: number): boolean {
+    const session = this.session!;
+    if (session.humanCount < 2) return false;
+    if (s.turn.phase === 'START_TURN') return true;
+    return !!s.trade && s.trade.to === who && this.revealedTrade !== tradeKey(s);
+  }
+
+  private renderOverlay(s: GameState): void {
+    const ov = this.els['overlay']!;
+    const session = this.session!;
+    ov.replaceChildren();
+    ov.hidden = true;
+    const show = (el: HTMLElement) => { ov.hidden = false; ov.append(el); };
+    if (s.turn.phase === 'GAME_OVER') {
+      return show(h('div', { class: 'card-box', 'data-testid': 'game-over' },
+        h('h2', {}, t('over.title', { name: playerName(s.winner!) })),
+        h('button', { class: 'primary big', 'data-testid': 'play-again', onclick: () => this.renderSetup() }, t('over.again'))));
+    }
+    if (this.cards.length) {
+      const c = this.cards[0]!;
+      const card = this.findCard(c.deck, c.cardId);
+      const dismiss = () => { this.cards.shift(); this.render(); };
+      if (!session.isHuman(c.player)) setTimeout(() => { if (this.cards[0] === c) dismiss(); }, this.o.test ? 0 : 1600);
+      return show(h('div', { class: 'card-box', 'data-testid': 'card' },
+        h('div', { class: 'deck' }, t(`deck.${c.deck}`)),
+        h('p', {}, this.cardText(card)),
+        h('button', { class: 'primary', 'data-testid': 'card-ok', onclick: dismiss }, t('card.ok'))));
+    }
+    const who = session.actor();
+    if (who === null || !session.isHuman(who) || !this.needsHandoff(s, who)) return;
+    if (s.turn.phase === 'START_TURN') {
+      return show(h('div', { class: 'card-box', 'data-testid': 'handoff' },
+        h('span', { class: 'swatch big', style: `background:${this.color(who)}` }),
+        h('h2', {}, t('handoff.pass', { name: playerName(who) })),
+        this.actButton(t('handoff.reveal'), { type: 'BEGIN_TURN' }, 'primary big')));
+    }
+    return show(h('div', { class: 'card-box', 'data-testid': 'handoff-trade' },
+      h('h2', {}, t('handoff.answer', { name: playerName(who) })),
+      h('button', { class: 'primary big', 'data-testid': 'reveal-trade', onclick: () => { this.revealedTrade = tradeKey(s); this.render(); } }, t('handoff.show'))));
+  }
+
+  private findCard(deck: 'lucky' | 'dohs', id: string): Card {
+    return this.o.engine.rules.cards[deck].find((c) => c.id === id)!;
+  }
+
+  // Card text with its numbers filled in from the card's effect and the config.
+  private cardText(card: Card): string {
+    const fx = card.effect as Record<string, unknown>;
+    const params: Record<string, string> = { salary: money(this.o.engine.rules.config.goSalary) };
+    if (typeof fx['amount'] === 'number') params['amount'] = money(fx['amount']);
+    if (typeof fx['perHouse'] === 'number') params['perHouse'] = money(fx['perHouse']);
+    if (typeof fx['perHotel'] === 'number') params['perHotel'] = money(fx['perHotel']);
+    if (typeof fx['steps'] === 'number') params['steps'] = num(Math.abs(fx['steps']));
+    if (typeof fx['tile'] === 'string') params['tile'] = tileName(this.o.engine.rules, fx['tile']);
+    return t(card.textKey, params);
+  }
+
+  private tile(id: string): Tile {
+    return this.o.engine.rules.tiles.find((x) => x.id === id)!;
+  }
+
+  private color(player: number): string {
+    const c = this.o.sceneConfig.colors.players;
+    return c[player % c.length]!;
+  }
+}
+
+const emptyDraft = (): TradeDraft => ({ to: null, give: new Set(), get: new Set(), giveCash: 0, getCash: 0, error: false });
+const tradeKey = (s: GameState) => `${s.turnCount}:${JSON.stringify(s.trade)}`;
