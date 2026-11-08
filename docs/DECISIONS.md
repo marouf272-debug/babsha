@@ -92,6 +92,7 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-84 | 2026-11-08 | Tiles are clean: no scenery on any tile. A property's Dhaka landmark (and its Bangla sign) appears, growing in, once someone builds there, with the houses on the set band. Corners, hubs, utilities, cards and taxes stay clean. Tile names use the full tile on clean tiles. | Owner | Owner feedback on the S6 board: too busy and too small to read. This changes plan 3.7 and the S6 check "all 40 tiles dressed": Dhaka now reads through Bangla names, the palette and built properties. |
 | D-85 | 2026-11-08 | On a phone, pop-ups (deed, auction, trade, manage, debt, cards, hand-off, game over) are small cards over the middle of the board with a light backdrop, not sheets covering the screen. The manage list sits low on the board so highlighted tiles stay visible. | Owner | Owner feedback: pop-ups should not cover the whole board. |
 | D-86 | 2026-11-08 | Desktop and landscape layout: player info on the left, the board in the middle, actions and every pop-up in a panel on the right. | Owner | Owner feedback; matches plan 3.5's desktop direction. |
+| D-87 | 2026-11-08 | Replaces D-46: on their turn the active player may build, sell, mortgage, redeem and trade at any point, before rolling, after rolling, and while deciding whether to buy. Not at the hand-off before the turn starts. The debtor still may sell, mortgage and trade in DEBT. | Owner | Owner feedback after playing: they wanted to mortgage before rolling. |
 
 ## Open questions
 

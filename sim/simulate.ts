@@ -113,7 +113,7 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
 // Random agent with fixed weights per action type, so games do things a real player would
 // (build, redeem) more often than things that stall them (mortgage, sell). Not an AI: S3 adds those.
 const WEIGHTS: Partial<Record<Action['type'], number>> = {
-  END_TURN: 5, BUILD: 4, REDEEM: 2, BUY: 3, SELL_BUILDING: 0.3, MORTGAGE: 0.3,
+  END_TURN: 5, ROLL: 5, BUILD: 4, REDEEM: 2, BUY: 3, SELL_BUILDING: 0.3, MORTGAGE: 0.3,
   PAY_DEBT: 50, DECLARE_BANKRUPTCY: 0.2,
 };
 

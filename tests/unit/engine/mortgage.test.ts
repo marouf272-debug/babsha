@@ -44,13 +44,25 @@ describe('mortgage and redeem (FR-07, R-43, R-44, D-30, D-32, D-35)', () => {
     expect(legalOf(s0, 'REDEEM')).toEqual([]);
   });
 
-  it('D-46: mortgage and redeem happen only in MANAGE, not before the roll', () => {
+  it('D-87: mortgage and redeem are allowed on your turn before the roll', () => {
     const s0 = edit(ready(newGame(2, 41).state), (s) => {
       s.properties['chawk_bazar'] = { owner: s.turn.active, houses: 0, mortgaged: false };
       s.properties['basabo'] = { owner: s.turn.active, houses: 0, mortgaged: true };
     });
-    expect(legalOf(s0, 'MORTGAGE')).toEqual([]);
-    expect(legalOf(s0, 'REDEEM')).toEqual([]);
+    expect(legalOf(s0, 'MORTGAGE')).toEqual(['chawk_bazar']);
+    expect(legalOf(s0, 'REDEEM')).toEqual(['basabo']);
+  });
+
+  it('D-87: a player may mortgage to raise cash while deciding whether to buy', () => {
+    const s0 = edit(ready(newGame(2, 41).state), (s) => {
+      s.properties['kamalapur'] = { owner: s.turn.active, houses: 0, mortgaged: false };
+      s.players[s.turn.active]!.cash = 100;
+    });
+    let r = rollAs(s0, 1, 2); // Chawk Bazar, 600
+    expect(r.state.turn.phase).toBe('BUY_DECISION');
+    expect(legalOf(r.state, 'BUY')).toEqual([]);
+    r = step(r.state, { type: 'MORTGAGE', tileId: 'kamalapur' });
+    expect(legalOf(r.state, 'BUY')).toEqual(['BUY']);
   });
 
   it('D-42: a player in Jam may mortgage and redeem', () => {

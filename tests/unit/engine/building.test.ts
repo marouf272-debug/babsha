@@ -68,19 +68,41 @@ describe('building and selling (FR-06, R-37 to R-42, D-29, D-31, D-46)', () => {
     expect(r.state.players[s0.turn.active]!.cash).toBe(10000 + 250);
   });
 
-  it('D-46: building and selling happen only in MANAGE, not before the roll', () => {
+  it('D-87: building and selling are allowed on your turn before the roll, and the turn stays at ROLL', () => {
     const s0 = edit(ready(newGame(2, 41).state), (s) => {
       s.properties['puran_dhaka'] = { owner: s.turn.active, houses: 1, mortgaged: false };
       s.properties['chawk_bazar'] = { owner: s.turn.active, houses: 0, mortgaged: false };
     });
     expect(s0.turn.phase).toBe('ROLL');
-    expect(legalOf(s0, 'BUILD')).toEqual([]);
-    expect(legalOf(s0, 'SELL_BUILDING')).toEqual([]);
+    expect(legalOf(s0, 'BUILD')).toEqual(['chawk_bazar']);
+    expect(legalOf(s0, 'SELL_BUILDING')).toEqual(['puran_dhaka']);
+    const r = step(s0, { type: 'BUILD', tileId: 'chawk_bazar' });
+    expect(r.state.turn.phase).toBe('ROLL');
+  });
+
+  it('D-87: building is allowed while deciding whether to buy', () => {
+    const s0 = edit(ready(newGame(2, 41).state), (s) => {
+      s.properties['jatrabari'] = { owner: s.turn.active, houses: 0, mortgaged: false };
+      s.properties['motijheel'] = { owner: s.turn.active, houses: 0, mortgaged: false };
+      s.properties['basabo'] = { owner: s.turn.active, houses: 0, mortgaged: false };
+      s.turn.phase = 'BUY_DECISION';
+      s.turn.pendingTile = 'chawk_bazar';
+    });
+    expect(legalOf(s0, 'BUILD')).toEqual(['jatrabari', 'motijheel', 'basabo']);
+    expect(step(s0, { type: 'BUILD', tileId: 'basabo' }).state.turn.phase).toBe('BUY_DECISION');
   });
 
   it('D-42: a player in Jam may build', () => {
     const s0 = edit(browns(), (s) => { const p = s.players[s.turn.active]!; p.inJam = true; p.position = 10; });
     expect(legalOf(s0, 'BUILD')).toEqual(['puran_dhaka', 'chawk_bazar']);
+  });
+
+  it('FR-06, R-37: when an opponent owns one property of a set, neither player can build anywhere in it', () => {
+    const s0 = managing({ jatrabari: {}, motijheel: {}, basabo: { owner: -1 } });
+    const fixed = edit(s0, (s) => { s.properties['basabo']!.owner = (s.turn.active + 1) % 2; });
+    expect(legalOf(fixed, 'BUILD')).toEqual([]);
+    const theirTurn = edit(fixed, (s) => { s.turn.active = (s.turn.active + 1) % 2; });
+    expect(legalOf(theirTurn, 'BUILD')).toEqual([]);
   });
 
   it('FR-06: only the owner may build on their set', () => {

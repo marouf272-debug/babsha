@@ -29,7 +29,7 @@ How to read this document:
 
 - **R-10** A turn moves through these states: START_TURN, ROLL, MOVE, RESOLVE, then BUY_DECISION or AUCTION where they apply, then MANAGE, then END_TURN. A DEBT state can be entered at any time and returns to the previous state or ends in GAME_OVER. (plan 3.2)
 - **R-11** In Pass & Play, START_TURN shows a hand-off screen and the next player taps to reveal their view. (FR-12, plan 3.2)
-- **R-12** In MANAGE the active player may build, sell, mortgage, redeem and trade, also while in Jam. These happen only after the roll is resolved. (plan 3.2, D-42, D-46)
+- **R-12** On their turn the active player may build, sell, mortgage, redeem and trade at any point: before rolling, after rolling, and while deciding whether to buy, also while in Jam. (plan 3.2, D-42, D-87, which replaces D-46)
 
 ## 4. Dice, doubles and movement
 

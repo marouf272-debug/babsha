@@ -74,8 +74,17 @@ describe('trading (FR-08, R-45 to R-48, D-37, D-44, D-46, D-51)', () => {
     expect(engine.tradeProblem(dead, offer(dead, { giveCash: 10 }))).toMatch(/another player/);
   });
 
-  it('D-46: trading happens only in MANAGE, not before the roll', () => {
+  it('D-87: trading is allowed on your turn before the roll, and the turn returns to ROLL', () => {
     const s = ready(newGame(3, 41).state);
+    expect(engine.tradeProblem(s, offer(s, { giveCash: 10 }))).toBeNull();
+    let r = step(s, { type: 'PROPOSE_TRADE', offer: offer(s, { giveCash: 10 }) });
+    r = step(r.state, { type: 'REJECT_TRADE', player: (s.turn.active + 1) % 3 });
+    expect(r.state.turn.phase).toBe('ROLL');
+  });
+
+  it('D-87: trading is not allowed at the hand-off, before the turn has started', () => {
+    const s = newGame(3, 41).state;
+    expect(s.turn.phase).toBe('START_TURN');
     expect(engine.tradeProblem(s, offer(s, { giveCash: 10 }))).toMatch(/not now/);
   });
 

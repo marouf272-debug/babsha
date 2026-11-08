@@ -129,14 +129,14 @@ export function createEngine(rules: Rules): Engine {
         const actions: Action[] = [{ type: 'ROLL', player: me }];
         if (p.inJam && p.cash >= config.jam.fine) actions.push({ type: 'PAY_JAM_FINE', player: me });
         if (p.inJam && p.jamCards.length > 0) actions.push({ type: 'USE_JAM_CARD', player: me }); // R-50, D-47
-        return actions;
+        return [...actions, ...manageActions(state, me, 'MANAGE')]; // D-87: manage before rolling too
       }
       case 'BUY_DECISION': {
         const t = tile(state.turn.pendingTile!);
         const actions: Action[] = [];
         if (p.cash >= priceOf(t)) actions.push({ type: 'BUY', player: me });
         actions.push({ type: 'DECLINE', player: me });
-        return actions;
+        return [...actions, ...manageActions(state, me, 'MANAGE')]; // D-87: e.g. mortgage to afford it
       }
       case 'AUCTION': {
         const a = state.auction!;
@@ -216,7 +216,8 @@ export function createEngine(rules: Rules): Engine {
   // R-45, R-46, D-44, D-46, D-51.
   function tradeProblem(state: GameState, offer: Omit<TradeOffer, 'from'>): string | null {
     const phase = state.turn.phase;
-    if ((phase !== 'MANAGE' && phase !== 'DEBT') || state.trade) return 'Trading is not now';
+    // D-87: on your turn (before or after the roll, or while deciding to buy), or in DEBT (D-39).
+    if (!['ROLL', 'BUY_DECISION', 'MANAGE', 'DEBT'].includes(phase) || state.trade) return 'Trading is not now';
     const from = actor(state);
     const to = offer.to;
     if (!Number.isInteger(to) || to < 0 || to >= state.players.length || to === from || state.players[to]!.bankrupt) {
@@ -259,7 +260,7 @@ export function createEngine(rules: Rules): Engine {
     }
   }
 
-  // D-46: management actions for the active player in MANAGE, or the debtor in DEBT (D-39).
+  // Management actions: the active player at any point of their turn (D-87), or the debtor in DEBT (D-39).
   function manageActions(state: GameState, pl: number, phase: 'MANAGE' | 'DEBT'): Action[] {
     const actions: Action[] = [];
     for (const t of tiles) {
