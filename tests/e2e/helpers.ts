@@ -52,7 +52,9 @@ export async function playOneStep(page: Page): Promise<'over' | 'acted' | 'waiti
       await page.getByTestId('trade-getCash').fill(String(o.getCash));
       await page.getByTestId('trade-propose').click();
       return 'acted';
-    }
+    }    default:
+      // D-87: a tool can be open before rolling or while buying; close it for any other move.
+      if (await page.locator('.tool.on').count()) await page.locator('.tool.on').click();
   }
   const ok = await clickAction(page, a);
   expect(ok, `no button for ${JSON.stringify(a)}`).toBe(true);
@@ -111,6 +113,8 @@ export async function runSteps(page: Page, max: number): Promise<{ status: 'over
       const opener: Record<string, string> = { BUILD: 'act-build', SELL_BUILDING: 'act-sell', MORTGAGE: 'act-mortgage', REDEEM: 'act-redeem' };
       const open = document.querySelector('.tool.on')?.getAttribute('data-testid');
       if (opener[a.type] && !shown('debt') && open !== opener[a.type]) press(opener[a.type]!);
+      // D-87: a tool can be open before rolling or while buying; close it for any other move.
+      if (!opener[a.type] && a.type !== 'PROPOSE_TRADE' && open) press(open);
       if (a.type === 'DECLARE_BANKRUPTCY') press('bankrupt');
       if (a.type === 'PROPOSE_TRADE') {
         const o = a.offer!;

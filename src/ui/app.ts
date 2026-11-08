@@ -3,11 +3,11 @@
 // All text comes from the language files; all rules come from the engine.
 
 import { emptyMemory, type Ai, type AiMemory, type AiProfile } from '../ai';
-import type { Action, Card, Engine, GameEvent, GameState, Tile, TradeOffer } from '../engine';
+import type { Action, Engine, GameEvent, GameState, Tile, TradeOffer } from '../engine';
 import { getLang, money, num, setLang, t, tIn } from '../i18n';
 import { BoardScene, type SceneText } from '../scene/board';
 import type { SceneConfig } from '../scene/config';
-import { describeEvent, playerName, tileName } from './describe';
+import { cardText, describeLines, findCard, playerName, tileName } from './describe';
 import { cueFor } from '../audio/cues';
 import { Sfx } from '../audio/sfx';
 import { cardArt } from './cardArt';
@@ -46,7 +46,10 @@ export class App {
   // Which management move the manage sheet lists (FR-17 buttons), or all of them in DEBT.
   private mode: 'BUILD' | 'SELL_BUILDING' | 'MORTGAGE' | 'REDEEM' | null = null;
   private draft: TradeDraft = emptyDraft();
-  private log: string[] = [];
+  // D-89: every logged event, kept raw so the log redraws in either language.
+  private events: GameEvent[] = [];
+  // D-88: the details popup for a tile, a player, or the full log.
+  private info: { kind: 'tile'; id: string } | { kind: 'player'; player: number } | { kind: 'log' } | null = null;
   private lastRoll: number[] | null = null;
   private cards: Array<{ player: number; deck: 'lucky' | 'dohs'; cardId: string }> = [];
   private revealedTrade: string | null = null;
@@ -128,7 +131,8 @@ export class App {
       // Computer moves wait for the board animation to finish.
       schedule: (fn, ms) => { void this.playing.then(() => setTimeout(fn, ms)); },
     });
-    this.log = [];
+    this.events = [];
+    this.info = null;
     this.lastRoll = null;
     this.cards = [];
     this.panel = null;
@@ -160,12 +164,15 @@ export class App {
     this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), { instant: this.o.test, fps });
     new ResizeObserver(() => this.scene?.resize()).observe(canvas);
     // D-71: tap a highlighted tile to build, sell, mortgage or redeem there.
+    // D-88: tapping any other tile shows its details.
     canvas.addEventListener('pointerup', (e) => {
-      const ids = this.tapTargets();
-      if (!ids.length || !this.scene || !this.mode) return;
-      const id = this.scene.pickTile(e.clientX, e.clientY);
-      if (id && ids.includes(id)) this.act({ type: this.mode, tileId: id });
+      const id = this.scene?.pickTile(e.clientX, e.clientY);
+      if (!id) return;
+      if (this.mode && this.tapTargets().includes(id)) this.act({ type: this.mode, tileId: id });
+      else this.openInfo({ kind: 'tile', id });
     });
+    this.els['log']!.setAttribute('data-testid', 'log');
+    this.els['log']!.addEventListener('click', () => this.openInfo({ kind: 'log' }));
   }
 
   // Pop-ups go in the right panel on desktop, and as small cards over the board on a phone.
@@ -193,13 +200,14 @@ export class App {
 
   private onUpdate(state: GameState, events: GameEvent[]): void {
     for (const e of events) {
-      const line = describeEvent(e, state, this.o.engine.rules);
-      if (line) this.log.push(line);
+      if (describeLines(e, state, this.o.engine.rules).length) this.events.push(e);
+      // A roll ends any management the player was doing before it.
+      if (e.type === 'diceRolled') { this.panel = null; this.mode = null; }
       if (e.type === 'cardDrawn') this.cards.push({ player: e.player, deck: e.deck, cardId: e.cardId });
       if (e.type === 'diceRolled') this.lastRoll = e.dice;
       if (e.type === 'turnPassed' || e.type === 'tradeAccepted' || e.type === 'tradeRejected') this.panel = null;
     }
-    this.log = this.log.slice(-40);
+    this.events = this.events.slice(-600);
     this.confirmBankrupt = false;
     // Computer card draws are shown briefly; a human dismisses their own card.
     const scene = this.scene;
@@ -232,7 +240,8 @@ export class App {
     const s = this.session.state;
     this.renderTop(s);
     this.renderPlayers(s);
-    this.els['log']!.replaceChildren(...this.log.slice(-2).map((l) => h('div', { class: 'log-line' }, l)));
+    // The side panel on a computer has room for more recent lines than a phone.
+    this.els['log']!.replaceChildren(...this.logLines().slice(this.wide.matches ? -10 : -2).map((l) => h('div', { class: 'log-line' }, l)));
     this.renderActions(s);
     this.renderSheet(s);
     this.renderOverlay(s);
@@ -244,7 +253,7 @@ export class App {
     const session = this.session;
     if (!session || this.panel !== 'manage' || !this.mode) return [];
     const who = session.actor();
-    if (who === null || !session.isHuman(who) || session.state.turn.phase !== 'MANAGE') return [];
+    if (who === null || !session.isHuman(who) || !canManage(session.state)) return [];
     return session.legalFor(who).filter((a) => a.type === this.mode && 'tileId' in a).map((a) => (a as { tileId: string }).tileId);
   }
 
@@ -270,7 +279,6 @@ export class App {
     document.documentElement.lang = getLang();
     document.title = t('app.title');
     try { localStorage.setItem('babsha.lang', getLang()); } catch { /* storage may be blocked */ }
-    if (this.session) this.log = []; // old lines were in the other language
     this.scene?.refreshText();
     this.render();
   }
@@ -281,6 +289,7 @@ export class App {
       h('div', { class: 'turn', 'data-testid': 'turn' }, label),
       this.langButton(),
       this.soundButton(),
+      this.logButton(),
       h('button', { class: 'chip', 'data-testid': 'new-game', onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, t('menu.newGame')),
     );
   }
@@ -295,7 +304,9 @@ export class App {
     roll.style.gridRow = `1 / span ${rows}`;
     this.els['players']!.replaceChildren(roll, ...s.players.map((p, i) => h('div', {
       class: `player ${i % 2 === 0 ? 'left' : 'right'}${i === s.turn.active ? ' active' : ''}${p.bankrupt ? ' out' : ''}`, 'data-testid': `player-${i}`,
-      style: `grid-row:${Math.floor(i / 2) + 1}`,
+      style: `grid-row:${Math.floor(i / 2) + 1}`, role: 'button', tabindex: 0,
+      onclick: () => this.openInfo({ kind: 'player', player: i }),
+      onkeydown: (e) => { if ((e as KeyboardEvent).key === 'Enter') this.openInfo({ kind: 'player', player: i }); },
     },
     h('span', { class: 'swatch', style: `background:${this.color(i)}` }),
     h('span', { class: 'pname' }, playerName(i)),
@@ -324,7 +335,8 @@ export class App {
     } else if (human && s.turn.phase === 'MANAGE' && !s.trade) {
       main.push(this.actButton(t('action.endTurn'), { type: 'END_TURN' }, 'primary'));
     }
-    const manage = human && s.turn.phase === 'MANAGE' && !s.trade;
+    // D-87: the tools work at any point of your own turn: before rolling, while buying, after moving.
+    const manage = human && canManage(s);
     const tool = (testid: string, label: string, mode: App['mode']) => h('button', {
       class: `tool${this.panel === 'manage' && this.mode === mode ? ' on' : ''}`, 'data-testid': testid,
       disabled: !manage || !has(mode!),
@@ -367,19 +379,28 @@ export class App {
     const who = session.actor();
     sheet.replaceChildren();
     sheet.hidden = true;
-    if (who === null || !session.isHuman(who) || s.turn.phase === 'GAME_OVER' || this.cards.length || this.needsHandoff(s, who)) return;
+    sheet.classList.remove('compact');
+    if (s.turn.phase === 'GAME_OVER' || this.cards.length) return;
+    // D-88: details are open to everyone at any time, and sit on top until closed.
+    if (this.info) {
+      sheet.hidden = false;
+      sheet.append(this.infoSheet(s, this.info));
+      return;
+    }
+    if (who === null || !session.isHuman(who) || this.needsHandoff(s, who)) return;
+    const free = canManage(s);
     let body: HTMLElement | null = null;
     if (s.trade && s.trade.to === who) body = this.tradeAnswer(s, s.trade);
+    else if (free && this.panel === 'manage') body = this.manageSheet(s, who, true);
+    else if (free && this.panel === 'trade') body = this.tradeSheet(s, who);
     else if (s.turn.phase === 'BUY_DECISION') body = this.deedSheet(s, who);
     else if (s.turn.phase === 'AUCTION') body = this.auctionSheet(s, who);
     else if (s.turn.phase === 'DEBT' && this.panel === 'trade') body = this.tradeSheet(s, who);
     else if (s.turn.phase === 'DEBT') body = this.debtSheet(s, who);
-    else if (s.turn.phase === 'MANAGE' && this.panel === 'manage') body = this.manageSheet(s, who, true);
-    else if (s.turn.phase === 'MANAGE' && this.panel === 'trade') body = this.tradeSheet(s, who);
     if (body) {
       sheet.hidden = false;
       // The manage list is a short sheet so the highlighted tiles stay visible above it.
-      sheet.classList.toggle('compact', s.turn.phase === 'MANAGE' && this.panel === 'manage');
+      sheet.classList.toggle('compact', free && this.panel === 'manage');
       sheet.append(body);
     }
   }
@@ -477,7 +498,7 @@ export class App {
     const tileList = (owner: number, set: Set<string>, side: 'give' | 'get') => h('div', { class: 'checks' },
       ...this.o.engine.rules.tiles.filter((x) => s.properties[x.id]?.owner === owner).map((tile) => {
         const box = h('input', { type: 'checkbox', checked: set.has(tile.id), 'data-testid': `trade-${side}-${tile.id}`, onchange: () => { if (set.has(tile.id)) set.delete(tile.id); else set.add(tile.id); d.error = false; } });
-        return h('label', { class: 'check' }, box, t(tile.nameKey));
+        return h('label', { class: 'check' }, box, this.tileTag(tile));
       }));
     const cashInput = (key: 'giveCash' | 'getCash', max: number) => h('input', {
       type: 'number', min: 0, max, step: 100, value: d[key], inputmode: 'numeric', 'data-testid': `trade-${key}`,
@@ -489,7 +510,7 @@ export class App {
     } else {
       body.append(
         h('div', { class: 'cols' },
-          h('div', {}, h('div', { class: 'field-label' }, t('trade.give')), tileList(who, d.give, 'give'), h('label', { class: 'cash-in' }, t('trade.cash'), cashInput('giveCash', s.players[who]!.cash))),
+          h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(who) })), tileList(who, d.give, 'give'), h('label', { class: 'cash-in' }, t('trade.cash'), cashInput('giveCash', s.players[who]!.cash))),
           h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(d.to) })), tileList(d.to, d.get, 'get'), h('label', { class: 'cash-in' }, t('trade.cash'), cashInput('getCash', s.players[d.to]!.cash))),
         ),
         h('div', { class: 'error', hidden: !d.error }, d.error ? t('trade.invalid') : ''),
@@ -515,14 +536,17 @@ export class App {
 
   private tradeAnswer(s: GameState, o: TradeOffer): HTMLElement {
     const list = (ids: string[], cash: number) => {
-      const items = [...ids.map((id) => tileName(this.o.engine.rules, id)), ...(cash > 0 ? [money(cash)] : [])];
-      return h('ul', {}, ...(items.length ? items : [t('trade.nothing')]).map((x) => h('li', {}, x)));
+      const items = [
+        ...ids.map((id) => h('li', {}, this.tileTag(this.tile(id)))),
+        ...(cash > 0 ? [h('li', {}, money(cash))] : []),
+      ];
+      return h('ul', { class: 'trade-list' }, ...(items.length ? items : [h('li', {}, t('trade.nothing'))]));
     };
     return h('div', { 'data-testid': 'trade-answer' },
-      h('div', { class: 'band trade' }, t('trade.offerFrom', { name: playerName(o.from) })),
+      h('div', { class: 'band trade' }, t('trade.offerFrom', { name: playerName(o.from), other: playerName(o.to) })),
       h('div', { class: 'cols' },
         h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(o.from) })), list(o.giveTiles, o.giveCash)),
-        h('div', {}, h('div', { class: 'field-label' }, t('trade.give')), list(o.getTiles, o.getCash)),
+        h('div', {}, h('div', { class: 'field-label' }, t('trade.theyGive', { name: playerName(o.to) })), list(o.getTiles, o.getCash)),
       ),
       h('div', { class: 'row' },
         this.actButton(t('trade.accept'), { type: 'ACCEPT_TRADE', player: o.to }, 'primary'),
@@ -545,7 +569,7 @@ export class App {
         this.actButton(t('debt.pay', { amount: money(debt.amount) }), { type: 'PAY_DEBT' }, 'primary', !canPay),
         h('button', { 'data-testid': 'open-trade-debt', onclick: () => { this.panel = 'trade'; this.draft = emptyDraft(); this.render(); } }, t('action.trade')),
         this.confirmBankrupt
-          ? this.actButton(t('debt.confirm'), { type: 'DECLARE_BANKRUPTCY' }, 'danger')
+          ? this.actButton(t('debt.confirm', { name: playerName(who) }), { type: 'DECLARE_BANKRUPTCY' }, 'danger')
           : h('button', { class: 'danger', 'data-testid': 'bankrupt', onclick: () => { this.confirmBankrupt = true; this.render(); } }, t('debt.bankrupt')),
       ));
   }
@@ -573,13 +597,14 @@ export class App {
     }
     if (this.cards.length) {
       const c = this.cards[0]!;
-      const card = this.findCard(c.deck, c.cardId);
+      const card = findCard(this.o.engine.rules, c.deck, c.cardId)!;
       const dismiss = () => { this.cards.shift(); this.render(); };
       if (!session.isHuman(c.player)) setTimeout(() => { if (this.cards[0] === c) dismiss(); }, this.o.test ? 0 : 1600);
       return show(h('div', { class: 'card-box', 'data-testid': 'card' },
         h('div', { class: `band ${c.deck}` }, t(`deck.${c.deck}`)),
         cardArt(c.deck, card.effect.type, this.o.sceneConfig.colors.palette),
-        h('p', {}, this.cardText(card)),
+        h('div', { class: 'note' }, t('card.drawnBy', { name: playerName(c.player) })),
+        h('p', {}, cardText(this.o.engine.rules, card)),
         h('button', { class: 'primary', 'data-testid': 'card-ok', onclick: dismiss }, t('card.ok'))));
     }
     const who = session.actor();
@@ -596,20 +621,91 @@ export class App {
       h('button', { class: 'primary big', 'data-testid': 'reveal-trade', onclick: () => { this.revealedTrade = tradeKey(s); this.render(); } }, t('handoff.show'))));
   }
 
-  private findCard(deck: 'lucky' | 'dohs', id: string): Card {
-    return this.o.engine.rules.cards[deck].find((c) => c.id === id)!;
+  // ---------- details and log (D-88, D-89) ----------
+
+  private openInfo(info: NonNullable<App['info']>): void {
+    this.info = info;
+    this.render();
   }
 
-  // Card text with its numbers filled in from the card's effect and the config.
-  private cardText(card: Card): string {
-    const fx = card.effect as Record<string, unknown>;
-    const params: Record<string, string> = { salary: money(this.o.engine.rules.config.goSalary) };
-    if (typeof fx['amount'] === 'number') params['amount'] = money(fx['amount']);
-    if (typeof fx['perHouse'] === 'number') params['perHouse'] = money(fx['perHouse']);
-    if (typeof fx['perHotel'] === 'number') params['perHotel'] = money(fx['perHotel']);
-    if (typeof fx['steps'] === 'number') params['steps'] = num(Math.abs(fx['steps']));
-    if (typeof fx['tile'] === 'string') params['tile'] = tileName(this.o.engine.rules, fx['tile']);
-    return t(card.textKey, params);
+  private logButton(): HTMLElement {
+    const label = t('log.title');
+    const b = h('button', { class: 'chip icon', 'data-testid': 'open-log', 'aria-label': label, title: label, onclick: () => this.openInfo({ kind: 'log' }) });
+    b.append(icon('log', 20));
+    return b;
+  }
+
+  private logLines(): string[] {
+    const s = this.session!.state;
+    return this.events.flatMap((e) => describeLines(e, s, this.o.engine.rules));
+  }
+
+  // D-88: a tile name as a tag in its set color with the set symbol, like the deed header.
+  // Hubs and utilities have no set, so their tag is plain.
+  private tileTag(tile: Tile): HTMLElement {
+    if (!tile.group) return h('span', { class: 'tag plain' }, t(tile.nameKey));
+    return h('span', { class: 'tag', style: `background:${this.o.sceneConfig.colors.groups[tile.group]}` }, `${this.o.sceneConfig.groupSymbols[tile.group] ?? ''} ${t(tile.nameKey)}`);
+  }
+
+  private infoSheet(s: GameState, info: NonNullable<App['info']>): HTMLElement {
+    const close = h('div', { class: 'row' }, h('button', { 'data-testid': 'info-close', onclick: () => { this.info = null; this.render(); } }, t('action.close')));
+    if (info.kind === 'log') {
+      const lines = this.logLines().reverse();
+      return h('div', { 'data-testid': 'info-log' },
+        h('div', { class: 'band plain' }, t('log.title')),
+        lines.length ? h('ol', { class: 'log-full' }, ...lines.map((l) => h('li', {}, l))) : h('div', { class: 'note' }, t('log.empty')),
+        close);
+    }
+    if (info.kind === 'player') {
+      const i = info.player;
+      const p = s.players[i]!;
+      const mine = this.o.engine.rules.tiles.filter((x) => s.properties[x.id]?.owner === i);
+      const status = p.bankrupt ? t('hud.bankrupt') : p.inJam ? t('hud.inJam') : this.session!.isHuman(i) ? '' : t(`seat.${this.session!.seats[i]}`);
+      return h('div', { 'data-testid': 'info-player' },
+        h('div', { class: 'band plain who-band' }, h('span', { class: 'swatch', style: `background:${this.color(i)}` }), playerName(i)),
+        h('div', { class: 'kv' }, h('span', {}, t('trade.cash')), h('span', {}, money(p.cash))),
+        status ? h('div', { class: 'status' }, status) : null,
+        p.jamCards.length ? h('div', { class: 'status' }, t('info.jamCards', { n: num(p.jamCards.length) })) : null,
+        h('div', { class: 'field-label' }, t('info.properties')),
+        mine.length
+          ? h('div', { class: 'props' }, ...mine.map((tile) => h('div', { class: 'prop-name' }, this.tileTag(tile), h('span', { class: 'level' }, this.levelText(s, tile)))))
+          : h('div', { class: 'note' }, t('manage.none')),
+        close);
+    }
+    const tile = this.tile(info.id);
+    const rules = this.o.engine.rules;
+    const config = rules.config;
+    const prop = s.properties[tile.id];
+    const parts: Array<HTMLElement | null> = [];
+    if (tile.type === 'property' || tile.type === 'hub' || tile.type === 'utility') {
+      parts.push(this.deedCard(tile));
+      if (!prop) {
+        parts.push(h('div', { class: 'status' }, t('info.unowned')));
+      } else {
+        parts.push(h('div', { class: 'status who-band' }, h('span', { class: 'swatch', style: `background:${this.color(prop.owner)}` }), t('info.owner', { name: playerName(prop.owner) })));
+        if (tile.type === 'property') parts.push(h('div', { class: 'status' }, t('info.buildings', { level: t(`deed.level.${Math.min(prop.houses, 5)}`) })));
+        if (prop.mortgaged) parts.push(h('div', { class: 'status' }, t('manage.mortgaged')));
+        else if (tile.type === 'utility') parts.push(h('div', { class: 'status' }, t('info.rentDice', { n: num(this.o.engine.rentFor(s, tile.id, 1)) })));
+        else parts.push(h('div', { class: 'status' }, t('info.rentNow', { amount: money(this.o.engine.rentFor(s, tile.id, 0)) })));
+      }
+    } else {
+      parts.push(h('div', { class: 'band plain' }, t(tile.nameKey)));
+      let text = '';
+      if (tile.type === 'tax') text = t('info.taxTile', { amount: money(config.tax[tile.tax!] ?? 0) });
+      else if (tile.type === 'lucky' || tile.type === 'dohs') text = t('info.cardTile', { deck: t(`deck.${tile.type}`) });
+      else if (tile.corner === 'go') text = t('info.go', { amount: money(config.goSalary) });
+      else if (tile.corner === 'jam') text = t('info.jam', { amount: money(config.jam.fine) });
+      else if (tile.corner === 'cha_adda') text = t('info.chaAdda');
+      else if (tile.corner === 'go_to_jam') text = t('info.goToJam');
+      parts.push(h('div', { class: 'note' }, text));
+    }
+    return h('div', { 'data-testid': 'info-tile' }, ...parts, close);
+  }
+
+  private levelText(s: GameState, tile: Tile): string {
+    const prop = s.properties[tile.id]!;
+    if (prop.mortgaged) return t('manage.mortgaged');
+    return tile.type === 'property' ? t(`deed.level.${Math.min(prop.houses, 5)}`) : '';
   }
 
   private tile(id: string): Tile {
@@ -622,5 +718,7 @@ export class App {
   }
 }
 
+// D-87: building, selling, mortgaging, redeeming and trading are open all through your own turn.
+const canManage = (s: GameState) => ['ROLL', 'BUY_DECISION', 'MANAGE'].includes(s.turn.phase) && !s.trade;
 const emptyDraft = (): TradeDraft => ({ to: null, give: new Set(), get: new Set(), giveCash: 0, getCash: 0, error: false });
 const tradeKey = (s: GameState) => `${s.turnCount}:${JSON.stringify(s.trade)}`;

@@ -1,6 +1,6 @@
 // Turns engine events into one line of text for the event log, in the current language.
 
-import type { GameEvent, GameState, Rules } from '../engine';
+import type { Card, GameEvent, GameState, Rules, TradeOffer } from '../engine';
 import { money, num, t } from '../i18n';
 
 export const TOKENS = ['rickshaw', 'cng', 'ilish', 'kite', 'tea_cup', 'bus'] as const;
@@ -11,6 +11,43 @@ export const playerName = (player: number) => t(`token.${TOKENS[player % TOKENS.
 export function tileName(rules: Rules, tileId: string): string {
   const tile = rules.tiles.find((x) => x.id === tileId);
   return tile ? t(tile.nameKey) : tileId;
+}
+
+// Card text with its numbers filled in from the card's effect and the config.
+export function cardText(rules: Rules, card: Card): string {
+  const fx = card.effect as Record<string, unknown>;
+  const params: Record<string, string> = { salary: money(rules.config.goSalary) };
+  if (typeof fx['amount'] === 'number') params['amount'] = money(fx['amount']);
+  if (typeof fx['perHouse'] === 'number') params['perHouse'] = money(fx['perHouse']);
+  if (typeof fx['perHotel'] === 'number') params['perHotel'] = money(fx['perHotel']);
+  if (typeof fx['steps'] === 'number') params['steps'] = num(Math.abs(fx['steps']));
+  if (typeof fx['tile'] === 'string') params['tile'] = tileName(rules, fx['tile']);
+  return t(card.textKey, params);
+}
+
+export function findCard(rules: Rules, deck: 'lucky' | 'dohs', id: string): Card | undefined {
+  return rules.cards[deck].find((c) => c.id === id);
+}
+
+// What one side of a trade hands over, as a short list ("Motijheel, Tk 500"), or "Nothing".
+export function tradeSide(rules: Rules, ids: string[], cash: number): string {
+  const items = [...ids.map((id) => tileName(rules, id)), ...(cash > 0 ? [money(cash)] : [])];
+  return items.length ? items.join(', ') : t('trade.nothing');
+}
+
+// D-89: the full log shows what changed, so a trade lists both sides and a card shows its text.
+export function describeLines(e: GameEvent, state: GameState, rules: Rules): string[] {
+  if (e.type === 'cardDrawn') {
+    const card = findCard(rules, e.deck, e.cardId);
+    if (card) return [t('ev.cardDrawnText', { name: playerName(e.player), deck: t(`deck.${e.deck}`), text: cardText(rules, card) })];
+  }
+  const line = describeEvent(e, state, rules);
+  if (e.type === 'tradeAccepted') return [line!, tradeDetail(rules, e.offer)];
+  return line ? [line] : [];
+}
+
+function tradeDetail(rules: Rules, o: TradeOffer): string {
+  return t('ev.tradeDetail', { name: playerName(o.from), give: tradeSide(rules, o.giveTiles, o.giveCash), other: playerName(o.to), get: tradeSide(rules, o.getTiles, o.getCash) });
 }
 
 // Returns the log line for an event, or null for events the log does not show.

@@ -108,7 +108,18 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .die i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink); place-self: center; visibility: hidden; }
 .die i.on { visibility: visible; }
 
-.log { padding: 3px 10px; font-size: 0.82rem; color: var(--muted); min-height: 2.6em; background: var(--paper); }
+.log { padding: 3px 10px; font-size: 0.82rem; color: var(--muted); min-height: 2.6em; background: var(--paper); cursor: pointer; }
+.player { cursor: pointer; }
+
+/* Tile tags (D-88): the name in its set color with the set symbol; hubs and utilities are plain. */
+.tag { display: inline-block; padding: 3px 9px; border-radius: 8px; color: #fff; font-weight: 700; font-size: 0.86rem; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+.tag.plain { background: var(--paperEdge); color: var(--ink); text-shadow: none; }
+.trade-list { list-style: none; padding: 0; margin: 4px 0; }
+.trade-list li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.who-band { display: flex; align-items: center; gap: 8px; }
+.sheet .band.plain { background: var(--boardGreenDark); }
+.log-full { margin: 4px 0; padding-left: 0; list-style: none; max-height: 52vh; overflow-y: auto; font-size: 0.86rem; }
+.log-full li { padding: 4px 0; border-bottom: 1px solid var(--paperEdge); }
 
 /* Fixed action bar (FR-17) */
 .actions { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 8px; background: var(--paper); box-shadow: inset 0 1px 0 var(--paperEdge); }

@@ -140,3 +140,4 @@ On a 390-point-wide phone a side tile is about 31 points wide. A rickshaw or nou
 
 - **Phone (portrait)**: top strip, board, player cards with the last roll, log, action bar. Pop-ups are small cards (about 300 points wide) over the middle of the board with a light backdrop; the manage list sits low on the board so highlighted tiles stay visible.
 - **Desktop and landscape**: player cards on the left, the board in the middle at full height, and a right panel with every pop-up on top, then the log and the action bar.
+- **Details and log (D-88, D-89)**: tile, player and log popups use the same small card (right panel on desktop) with a dark green band. Tile names in trade and player lists are tags in the set color with the set symbol and white text; hubs and utilities get a plain sand tag with dark text.
