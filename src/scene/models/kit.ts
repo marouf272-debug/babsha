@@ -55,12 +55,6 @@ export function tree(S: Scenery, f: TileFrame, a: number, b: number, s = 1): voi
   shadow(S, f, a, b, 0.24 * s, 0.24 * s);
 }
 
-// Coconut palm: tall thin trunk, drooping leaf cone.
-export function palm(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
-  cyl(S, f, a, b, 0.025 * s, 0.42 * s, 'terracotta', 0, 5, 0.018 * s);
-  S.solid(new THREE.ConeGeometry(0.17 * s, 0.1 * s, 6), 'leafDark', at(f, a, b, 0.45 * s), new THREE.Euler(Math.PI, 0, 0));
-  shadow(S, f, a, b, 0.2 * s, 0.2 * s);
-}
 
 export function water(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
   box(S, f, a, b, wa, db, 0.014, 'water', 0.002);
@@ -122,26 +116,7 @@ export function nouka(S: Scenery, f: TileFrame, a: number, b: number, s = 1): vo
   S.solid(new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.13 * s, 6, 1, false, 0, Math.PI), 'rickYellow', at(f, a, b, 0.07 * s), new THREE.Euler(0, yaw(f).y, Math.PI / 2, 'YXZ'));
 }
 
-// River launch: white multi-deck passenger boat with colored stripes (Sadarghat).
-export function launch(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
-  box(S, f, a, b, 0.62 * s, 0.2 * s, 0.07 * s, 'rickBlue', 0.01);
-  box(S, f, a, b, 0.56 * s, 0.17 * s, 0.09 * s, '#FFFFFF', 0.08 * s);
-  box(S, f, a, b, 0.57 * s, 0.18 * s, 0.015 * s, 'rickRed', 0.13 * s);
-  box(S, f, a - 0.04 * s, b, 0.4 * s, 0.15 * s, 0.08 * s, '#FFFFFF', 0.17 * s);
-  box(S, f, a - 0.04 * s, b, 0.41 * s, 0.16 * s, 0.012 * s, 'rickYellow', 0.21 * s);
-  cyl(S, f, a + 0.12 * s, b, 0.025 * s, 0.1 * s, 'ink', 0.25 * s, 6);
-}
 
-// Train of `cars` along the tile, green and red like Bangladesh Railway coaches.
-export function train(S: Scenery, f: TileFrame, a: number, b: number, cars: number, s = 1, color = '#2E9E4F'): void {
-  const len = 0.26 * s;
-  for (let k = 0; k < cars; k++) {
-    const ca = a + (k - (cars - 1) / 2) * (len + 0.02 * s);
-    box(S, f, ca, b, len, 0.12 * s, 0.12 * s, color, 0.03 * s);
-    box(S, f, ca, b, len + 0.004, 0.124 * s, 0.025 * s, 'glass', 0.1 * s);
-  }
-  shadow(S, f, a, b, cars * (len + 0.02) + 0.1, 0.22 * s);
-}
 
 // Elevated Metro Rail viaduct with a white and green train (Uttara, Line 6).
 export function metro(S: Scenery, f: TileFrame, a: number, b: number, len: number, h = 0.36): void {
@@ -167,40 +142,9 @@ export function footbridge(S: Scenery, f: TileFrame, a: number, b: number, len: 
   box(S, f, a, b, len, 0.11, 0.015, 'rickTeal', h + 0.03);
 }
 
-// Electric pole with a tangle of cables (DESCO).
-export function pole(S: Scenery, f: TileFrame, a: number, b: number, h = 0.7): void {
-  box(S, f, a, b, 0.04, 0.04, h, 'concreteShade');
-  box(S, f, a, b, 0.28, 0.03, 0.03, 'ink', h - 0.08);
-  box(S, f, a, b + 0.04, 0.12, 0.08, 0.1, 'tinRoof', h - 0.32);
-  for (const [da, db, y] of [[-0.3, 0.1, h - 0.1], [0.3, -0.1, h - 0.14], [-0.28, -0.12, h - 0.18], [0.26, 0.14, h - 0.12]] as const) {
-    box(S, f, a + da / 2, b + db / 2, Math.abs(da) + 0.02, Math.abs(db) + 0.01, 0.008, 'ink', y);
-  }
-  shadow(S, f, a, b, 0.2, 0.2);
-}
 
-// Overhead water tank on legs (Dhaka WASA).
-export function waterTower(S: Scenery, f: TileFrame, a: number, b: number, h = 0.45): void {
-  for (const [da, db] of [[-0.08, -0.08], [0.08, -0.08], [-0.08, 0.08], [0.08, 0.08]] as const) box(S, f, a + da, b + db, 0.03, 0.03, h, 'concreteShade');
-  cyl(S, f, a, b, 0.15, 0.2, 'water', h, 10);
-  cyl(S, f, a, b, 0.155, 0.03, 'waterLight', h + 0.2, 10);
-  shadow(S, f, a, b, 0.4, 0.4);
-}
 
-// Passenger plane in Bangladesh green with a red tail stripe (airport).
-export function plane(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
-  S.solid(new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.6 * s, 8), '#FFFFFF', at(f, a, b, 0.09 * s), new THREE.Euler(0, yaw(f).y, Math.PI / 2, 'YXZ'));
-  box(S, f, a + 0.02 * s, b, 0.14 * s, 0.6 * s, 0.015 * s, 'boardGreen', 0.08 * s);
-  box(S, f, a - 0.26 * s, b, 0.08 * s, 0.03 * s, 0.14 * s, 'rickRed', 0.1 * s);
-  box(S, f, a - 0.26 * s, b, 0.06 * s, 0.22 * s, 0.012 * s, 'boardGreen', 0.12 * s);
-  shadow(S, f, a, b, 0.7 * s, 0.6 * s);
-}
 
-export function controlTower(S: Scenery, f: TileFrame, a: number, b: number, h = 0.7): void {
-  cyl(S, f, a, b, 0.05, h, 'concrete', 0, 8);
-  cyl(S, f, a, b, 0.1, 0.1, 'glass', h, 8, 0.12);
-  cyl(S, f, a, b, 0.125, 0.025, 'rickBlue', h + 0.1, 8);
-  shadow(S, f, a, b, 0.26, 0.26);
-}
 
 // Market shed with a tin roof and crates of produce (Karwan Bazar).
 export function marketShed(S: Scenery, f: TileFrame, a: number, b: number, wa: number, db: number): void {
@@ -270,24 +214,8 @@ export function kite(S: Scenery, f: TileFrame, a: number, b: number, y: number, 
   box(S, f, a, b, 0.006, 0.006, y * 0.9, 'ink', 0.02);
 }
 
-export function cardStack(S: Scenery, f: TileFrame, a: number, b: number, color: string, s = 1): void {
-  for (let k = 0; k < 4; k++) box(S, f, a + k * 0.01 * s, b - k * 0.008 * s, 0.24 * s, 0.34 * s, 0.018 * s, k === 3 ? color : '#FFFFFF', k * 0.02 * s);
-  box(S, f, a + 0.03 * s, b - 0.024 * s, 0.14 * s, 0.22 * s, 0.004, 'rickYellow', 0.08 * s);
-  shadow(S, f, a, b, 0.32 * s, 0.4 * s);
-}
 
-export function coins(S: Scenery, f: TileFrame, a: number, b: number, s = 1): void {
-  for (const [da, dbb, n] of [[0, 0, 5], [0.1, 0.05, 3], [-0.09, 0.06, 2]] as const) {
-    for (let k = 0; k < n; k++) cyl(S, f, a + da * s, b + dbb * s, 0.06 * s, 0.02 * s, k % 2 ? '#E2B33C' : 'rickYellow', k * 0.022 * s, 10);
-  }
-  shadow(S, f, a, b, 0.3 * s, 0.24 * s);
-}
 
-export function trafficLight(S: Scenery, f: TileFrame, a: number, b: number, h = 0.45): void {
-  box(S, f, a, b, 0.025, 0.025, h, 'ink');
-  box(S, f, a, b, 0.06, 0.05, 0.16, 'ink', h);
-  (['rickRed', 'rickYellow', '#2E9E4F'] as const).forEach((c, k) => S.solid(new THREE.IcosahedronGeometry(0.018, 0), c, at(f, a, b, h + 0.13 - k * 0.05)));
-}
 
 // Gate with two pillars and a beam (DOHS housing society).
 export function gate(S: Scenery, f: TileFrame, a: number, b: number, wa: number, h = 0.32): void {

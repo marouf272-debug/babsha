@@ -70,7 +70,8 @@ World units: one side tile is 1 wide and 1.6 deep, corners 1.6 square, board 12.
 
 - **Tile face**: paper with a 2 px paperEdge border drawn in the texture. Name and price in ink, upright for the fixed camera (D-67), kept clear of the owner band on the outer edge.
 - **Set color band**: on the edge facing the board centre, with the set symbol (D-77): top edge on the bottom row, bottom edge on the top row, right edge on the left column, left edge on the right column. 0.3 units deep.
-- **Tile layout when dressed**: the outer 45 percent of the tile depth carries the name and price; the landmark fills the middle; the color band at the inner edge holds houses and hotels. Text never sits under a building or a house.
+- **Clean tile (D-84)**: name and price use the whole tile except the color band; the text shrinks until name and price fit without overlapping.
+- **Built tile**: the landmark appears in the middle and the text moves to the outer 45 percent of the tile depth; houses and hotels stand on the color band. Text never sits under a building or a house.
 - **Buildings**: footprint at most 0.85 by 0.85 units, height at most 1.3 units, so a building hides at most part of the tile behind it (plan risk R2). Ownership is a flat band on the outer edge, readable even when a building overlaps.
 - **Houses and hotels**: white houses with a red roof, 0.15 wide; a terracotta hotel block. They stand on the set color band, on every property tile.
 - **Tokens**: about 0.4 units tall, footprint up to 0.45.
@@ -97,7 +98,7 @@ Every tile gets one Dhaka-specific anchor: a rickshaw with rickshaw-art colors, 
 
 Review test for each tile: with the name covered, would a Bangladeshi viewer still say Dhaka? If not, redo it.
 
-All 40 tiles are dressed (S6). The anchor list is in code: src/scene/models/dressing.ts.
+Tiles are clean (D-84): a property's landmark appears only once someone builds there. Anchor list in code: src/scene/models/dressing.ts.
 
 ### S5 hero group: Dark Blue
 
@@ -121,7 +122,7 @@ Target: 40 frames per second on the iPhone 13 Pro (D-69), plus one mid-range And
 
 Budgets: pixel ratio at most 1.5, under 200 draw calls, under 60,000 triangles for the full board.
 
-S6 measurement with all 40 tiles dressed: 17 draw calls and about 10,700 triangles (static scenery merged, labels and signs in atlases, houses and owner bands instanced). S5, Dark Blue only, had 185 draw calls. Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
+S6 measurement: the clean board costs about 15 draw calls; each built property's landmark adds up to 4, so a board with every property built stays near 100, half the budget. The sample position with 7 built properties: 40 draw calls, about 3,700 triangles, 43 fps low in headless Chrome with the CPU slowed 4 times. (Before the owner asked for clean tiles, all 40 dressed cost 17 draw calls merged; S5, Dark Blue only, cost 185.) Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
 
 ## 10. Small anchors at phone scale
 
@@ -134,3 +135,8 @@ On a 390-point-wide phone a side tile is about 31 points wide. A rickshaw or nou
 - **Sound**: synthesized in code (plan 3.1): dice rattle, hop ticks, a cash chime for buying, coins for rent and salary, a paper swish for cards, an auction bell, a two-tone jam horn, a knock for building, falling notes for bankruptcy and a short fanfare for the win. All sound goes through one bus and a limiter. A sound toggle sits in the top strip and is remembered per device.
 - **Cards**: a rickshaw-art border of flowers and dots in the deck color, with a lucide icon for the card's effect.
 - **Tap to build**: Build, Sell, Mortgage and Redeem highlight the tiles they can use with a pulsing yellow overlay; tapping a tile acts there. The list stays as a fallback.
+
+## 12. Layout (D-85, D-86)
+
+- **Phone (portrait)**: top strip, board, player cards with the last roll, log, action bar. Pop-ups are small cards (about 300 points wide) over the middle of the board with a light backdrop; the manage list sits low on the board so highlighted tiles stay visible.
+- **Desktop and landscape**: player cards on the left, the board in the middle at full height, and a right panel with every pop-up on top, then the log and the action bar.

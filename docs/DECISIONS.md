@@ -89,6 +89,9 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-81 | 2026-11-08 | Static scenery is merged into a few meshes, labels and signs use atlases, houses and owner bands are instanced. 17 draw calls for the dressed board. | Builder | Style guide 9: draw calls were the S5 constraint. |
 | D-82 | 2026-11-08 | Tap to build: Build, Sell, Mortgage and Redeem highlight usable tiles and a tap acts there; the list stays as a fallback in a shorter sheet. | Builder | D-71 reference principle. |
 | D-83 | 2026-11-08 | Motion respects the phone's reduced-motion setting; sound has a toggle remembered per device and is off in test mode. | Builder | game-feel skill: accessibility option for motion; plan 2.2 accessibility. |
+| D-84 | 2026-11-08 | Tiles are clean: no scenery on any tile. A property's Dhaka landmark (and its Bangla sign) appears, growing in, once someone builds there, with the houses on the set band. Corners, hubs, utilities, cards and taxes stay clean. Tile names use the full tile on clean tiles. | Owner | Owner feedback on the S6 board: too busy and too small to read. This changes plan 3.7 and the S6 check "all 40 tiles dressed": Dhaka now reads through Bangla names, the palette and built properties. |
+| D-85 | 2026-11-08 | On a phone, pop-ups (deed, auction, trade, manage, debt, cards, hand-off, game over) are small cards over the middle of the board with a light backdrop, not sheets covering the screen. The manage list sits low on the board so highlighted tiles stay visible. | Owner | Owner feedback: pop-ups should not cover the whole board. |
+| D-86 | 2026-11-08 | Desktop and landscape layout: player info on the left, the board in the middle, actions and every pop-up in a panel on the right. | Owner | Owner feedback; matches plan 3.5's desktop direction. |
 
 ## Open questions
 

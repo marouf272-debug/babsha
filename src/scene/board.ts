@@ -1,6 +1,6 @@
-// 3D board (S6, docs/style-guide.md): every tile dressed, static scenery merged into a few meshes,
-// tile labels and signs in atlases, houses and owner bands instanced, so the full board costs
-// about twenty draw calls. Fixed orthographic camera, no pan or zoom (plan 3.6).
+// 3D board (S6, docs/style-guide.md): clean tiles with big labels; a property's Dhaka landmark
+// appears once someone builds there (D-84). Tiles merged, labels in one atlas, houses and owner
+// bands instanced, so the board costs about twenty draw calls. Fixed orthographic camera, no pan or zoom (plan 3.6).
 // Reads engine state and events; never changes them.
 
 import * as THREE from 'three';
@@ -59,6 +59,9 @@ export class BoardScene {
   private tweens: Array<(dt: number) => boolean> = [];
   private pops = new Map<string, number>(); // instance key -> start time (ms)
   private highlighted: string[] = [];
+  // Landmarks per property, shown only once someone builds there (D-84).
+  private readonly landmarks = new Map<string, THREE.Group>();
+  private built = new Set<string>();
   private dirty = true;
   private state: GameState | null = null;
   private readonly fps: { el: HTMLElement; frames: number; since: number; history: number[] } | null;
@@ -132,13 +135,28 @@ export class BoardScene {
     const S = new Scenery(this.kit);
     S.solid(new THREE.BoxGeometry(this.half * 2 + 0.5, board.baseHeight, this.half * 2 + 0.5), colors.boardRim, new THREE.Vector3(0, -board.baseHeight / 2 - 0.02, 0));
     S.solid(new THREE.BoxGeometry(this.half * 2 + 0.1, board.baseHeight, this.half * 2 + 0.1), colors.board, new THREE.Vector3(0, -board.baseHeight / 2, 0));
-    const all = dressers(dressing.textShare, dressing.houseLane);
     this.rules.tiles.forEach((t, i) => {
       const p = this.placements[i]!;
       S.solid(new THREE.BoxGeometry(p.w * 0.97, board.tileHeight, p.d * 0.97), colors.tile, new THREE.Vector3(p.x, board.tileHeight / 2, p.z));
-      all[t.id]?.(S, this.frameOf(p), this.text().signName(t));
     });
     this.scene.add(S.build());
+    // Each property's landmark is its own small group, hidden until the first house (D-84).
+    const all = dressers(dressing.textShare, dressing.houseLane);
+    for (const t of this.rules.tiles) {
+      const dress = all[t.id];
+      if (!dress) continue;
+      const p = this.placements[t.pos]!;
+      const L = new Scenery(this.kit);
+      dress(L, this.frameOf(p), this.text().signName(t));
+      const inner = L.build();
+      const pivot = new THREE.Group();
+      pivot.position.set(p.x, board.tileHeight, p.z);
+      inner.position.set(-p.x, -board.tileHeight, -p.z);
+      pivot.add(inner);
+      pivot.visible = false;
+      this.landmarks.set(t.id, pivot);
+      this.scene.add(pivot);
+    }
   }
 
   // ---------- tile labels: one atlas, one mesh (FR-15) ----------
@@ -207,8 +225,15 @@ export class BoardScene {
       g.textBaseline = 'middle';
       g.fillText(this.cfg.groupSymbols[t.group] ?? '', bx + bw / 2, by + bh / 2);
     }
-    const share = dressing.textShare;
-    if (iz < -0.5) { rh = H * share; ry = H - rh; } else if (iz > 0.5) rh = H * share; else if (ix > 0.5) rw = W * share; else { rw = W * share; rx = W - rw; }
+    if (this.built.has(t.id)) {
+      // Built: the landmark takes the middle, so the text keeps to the outer part.
+      const share = dressing.textShare;
+      if (iz < -0.5) { rh = H * share; ry = H - rh; } else if (iz > 0.5) rh = H * share; else if (ix > 0.5) rw = W * share; else { rw = W * share; rx = W - rw; }
+    } else if (t.group) {
+      // Clean tile: text uses everything except the set band.
+      const band = Math.round(dressing.houseLane * LABEL_SCALE);
+      if (iz < -0.5) { ry = band; rh = H - band; } else if (iz > 0.5) rh = H - band; else if (ix > 0.5) rw = W - band; else { rx = band; rw = W - band; }
+    }
     if (t.type === 'property' || t.type === 'hub' || t.type === 'utility') {
       const pad = Math.round(0.17 * LABEL_SCALE);
       if (iz < -0.5) rh -= pad; else if (iz > 0.5) { ry += pad; rh -= pad; } else if (ix > 0.5) { rx += pad; rw -= pad; } else rw -= pad;
@@ -216,11 +241,18 @@ export class BoardScene {
     g.fillStyle = colors.tileText;
     g.textAlign = 'center';
     g.textBaseline = 'top';
-    const size = Math.round(Math.min(rw * 0.22, rh * 0.3, 30));
-    g.font = `700 ${size}px ${txt.font}`;
-    const lines = wrap(g, txt.tileName(t), rw * 0.92);
-    lines.slice(0, 2).forEach((line, k) => g.fillText(line, rx + rw / 2, ry + 6 + k * size * 1.12, rw * 0.94));
     const note = txt.tileNote(t);
+    // Shrink the text until the name's lines and the price fit the region without overlapping.
+    let size = Math.round(Math.min(rw * 0.24, rh * 0.26, this.built.has(t.id) ? 30 : 40));
+    let lines: string[] = [];
+    for (; size > 10; size -= 2) {
+      g.font = `700 ${size}px ${txt.font}`;
+      lines = wrap(g, txt.tileName(t), rw * 0.92).slice(0, 3);
+      const need = 8 + lines.length * size * 1.12 + (note ? size * 0.85 + 8 : 0);
+      if (need <= rh - 4) break;
+    }
+    g.font = `700 ${size}px ${txt.font}`;
+    lines.forEach((line, k) => g.fillText(line, rx + rw / 2, ry + 8 + k * size * 1.12, rw * 0.94));
     if (note) {
       g.font = `600 ${Math.round(size * 0.85)}px ${txt.font}`;
       g.textBaseline = 'bottom';
@@ -302,6 +334,11 @@ export class BoardScene {
           this.roofs.setMatrixAt(nHouse++, m);
         }
       }
+    }
+    for (const [id, g] of this.landmarks) {
+      if (!g.visible) continue;
+      const k = pop(`landmark:${id}`);
+      g.scale.setScalar(k);
     }
     this.strips.count = nStrip;
     this.houses.count = this.roofs.count = nHouse;
@@ -394,6 +431,14 @@ export class BoardScene {
       }
     }
     this.state = state;
+    const built = new Set(Object.entries(state.properties).filter(([, x]) => x.houses > 0).map(([id]) => id));
+    const changed = built.size !== this.built.size || [...built].some((id) => !this.built.has(id));
+    if (changed) {
+      for (const id of built) if (!this.built.has(id) && prev && !this.opts.instant && !this.reduced) this.pops.set(`landmark:${id}`, performance.now());
+      this.built = built;
+      for (const [id, g] of this.landmarks) g.visible = built.has(id);
+      this.refreshText();
+    }
     while (this.tokens.length < state.players.length) this.tokens.push(this.makeToken(this.tokens.length));
     state.players.forEach((p, i) => {
       const tok = this.tokens[i]!;
@@ -428,7 +473,8 @@ export class BoardScene {
     const across = (col - 1) * 0.28;
     const deep = (row - 0.5) * 0.3;
     // Tokens wait on the text side of a tile; in Jam they stand toward the centre.
-    const push = pos === this.rules.jamPos && inJam ? 0.35 : -0.42;
+    const id = this.rules.tiles[pos]!.id;
+    const push = pos === this.rules.jamPos ? (inJam ? 0.35 : -0.35) : this.built.has(id) ? -0.42 : 0;
     const ox = vertical ? deep * 0.6 : across;
     const oz = vertical ? across : deep * 0.6;
     return new THREE.Vector3(p.x + ox + p.inward.x * push, this.cfg.board.tileHeight, p.z + oz + p.inward.y * push);

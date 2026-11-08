@@ -37,3 +37,15 @@ test('S6 card artwork', async ({ page }) => {
   await page.getByTestId('lang').click();
   await page.screenshot({ path: 'docs/screenshots/s6-card-bn.png' });
 });
+
+test('S6 phone pop-up: the deed is a small card over the board', async ({ page }) => {
+  await page.goto('/?test=1&lang=en');
+  await page.getByTestId('start').click();
+  for (let i = 0; i < 300 && !(await page.getByTestId('deed').isVisible()); i++) await runSteps(page, 1);
+  await expect(page.getByTestId('deed')).toBeVisible();
+  const box = await page.locator('.sheet').boundingBox();
+  const board = await page.locator('.board-wrap').boundingBox();
+  // The card stays inside the board area and leaves most of it visible.
+  expect(box!.width * box!.height).toBeLessThan(board!.width * board!.height * 0.75);
+  await page.screenshot({ path: 'docs/screenshots/s6-phone-deed-en.png' });
+});

@@ -144,17 +144,17 @@ export class App {
     const { root } = this.o;
     root.replaceChildren();
     const canvas = h('canvas', { class: 'board', 'data-testid': 'board' });
-    const names = ['top', 'players', 'log', 'actions', 'sheet', 'overlay'];
+    const names = ['top', 'players', 'log', 'actions', 'sheet', 'overlay', 'panel'];
     for (const n of names) this.els[n] = h('div', { class: n });
+    this.els['board'] = h('div', { class: 'board-wrap' }, canvas);
     root.append(h('div', { class: 'game' },
       this.els['top']!,
-      h('div', { class: 'board-wrap' }, canvas),
       this.els['players']!,
-      this.els['log']!,
-      this.els['actions']!,
-      this.els['sheet']!,
-      this.els['overlay']!,
+      this.els['board'],
+      h('div', { class: 'side' }, this.els['panel']!, this.els['log']!, this.els['actions']!),
     ));
+    this.placePopups();
+    this.wide.addEventListener('change', () => this.placePopups());
     const fps = this.o.fps ? h('div', { class: 'fps' }) : null;
     if (fps) root.append(fps);
     this.scene = new BoardScene(canvas, this.o.engine.rules, this.o.sceneConfig, () => this.sceneText(), { instant: this.o.test, fps });
@@ -166,6 +166,15 @@ export class App {
       const id = this.scene.pickTile(e.clientX, e.clientY);
       if (id && ids.includes(id)) this.act({ type: this.mode, tileId: id });
     });
+  }
+
+  // Pop-ups go in the right panel on desktop, and as small cards over the board on a phone.
+  private readonly wide = window.matchMedia('(min-width: 900px) and (orientation: landscape)');
+
+  private placePopups(): void {
+    const host = this.wide.matches ? this.els['panel']! : this.els['board']!;
+    for (const n of ['sheet', 'overlay']) if (this.els[n]!.parentElement !== host) host.append(this.els[n]!);
+    this.scene?.resize();
   }
 
   private sceneText(): SceneText {
@@ -405,7 +414,7 @@ export class App {
       h('div', { class: 'kv' }, h('span', {}, t('deed.price')), h('span', {}, money(q.price))),
       h('div', { class: 'kv' }, h('span', {}, t('deed.mortgage')), h('span', {}, money(q.mortgageValue))),
       h('div', { class: 'kv sub' }, h('span', {}, t('deed.rent'))),
-      ...rows.map(([a, b]) => h('div', { class: 'kv' }, h('span', {}, a), h('span', {}, b))),
+      h('div', { class: 'rent-grid' }, ...rows.map(([a, b]) => h('div', { class: 'kv' }, h('span', {}, a), h('span', {}, b)))),
       tile.type === 'property' ? h('div', { class: 'note' }, t('deed.fullSet')) : null,
     );
   }

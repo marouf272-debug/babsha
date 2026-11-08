@@ -78,17 +78,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .field-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; font-weight: 700; }
 
 /* Game layout, portrait first (plan 3.5) */
-.game { flex: 1; display: grid; grid-template-rows: auto 1fr auto auto auto; min-height: 0; position: relative;
+.game { flex: 1; display: grid; grid-template-rows: auto 1fr auto auto; grid-template-areas: "top" "board" "players" "side"; min-height: 0; position: relative;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-.top { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--boardGreenDark); color: #fff; position: relative; z-index: 11; }
+.top { grid-area: top; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--boardGreenDark); color: #fff; position: relative; z-index: 11; }
 /* The top strip stays usable above overlays, so the language can change during a hand-off. */
 .top .chip { background: rgba(255,255,255,0.14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); }
 .turn { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.board-wrap { position: relative; min-height: 0; }
+.board-wrap { grid-area: board; position: relative; min-height: 0; }
 canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.side { grid-area: side; display: flex; flex-direction: column; min-height: 0; }
+.panel { display: none; }
 
 /* Player cards in two columns, the last roll in the middle (style guide 3, D-71) */
-.players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; padding: 6px 8px; background: var(--paper); box-shadow: inset 0 1px 0 var(--paperEdge); }
+.players { grid-area: players; display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; padding: 6px 8px; background: var(--paper); box-shadow: inset 0 1px 0 var(--paperEdge); }
 .player { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center;
   padding: 5px 8px; border-radius: 12px; background: #fff; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08); border: 2px solid transparent; min-width: 0; }
 .player.left { grid-column: 1; }
@@ -122,12 +124,13 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .tool.on { outline: 3px solid var(--ink); outline-offset: 1px; }
 .thinking { color: var(--muted); padding: 8px 0; font-weight: 700; }
 
-/* Sheets slide up from the bottom; each has a colored header band */
-.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 72%; overflow-y: auto; background: var(--paper);
-  border-radius: 18px 18px 0 0; padding: 0 0 max(14px, env(safe-area-inset-bottom)); box-shadow: 0 -8px 22px rgba(0,0,0,0.18); z-index: 5; }
-.sheet > div { padding: 0 14px; }
-.sheet.compact { max-height: 42%; }
-.band { margin: 0 -14px 10px; padding: 12px 14px; color: #fff; font-weight: 800; font-size: 1.1rem; border-radius: 18px 18px 0 0; }
+/* Pop-ups: on a phone a small card over the middle of the board, so the board stays visible
+   (owner feedback, D-85); on desktop they sit in the right panel. Each has a colored band. */
+.sheet { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 78%); max-height: 96%; overflow-y: auto; font-size: 0.92rem;
+  background: var(--paper); border-radius: 16px; padding: 0 0 12px; box-shadow: 0 8px 26px rgba(0,0,0,0.28); z-index: 5; }
+.sheet.compact { top: auto; bottom: 6px; transform: translateX(-50%); max-height: 46%; }
+.sheet > div { padding: 0 12px; }
+.band { margin: 0 -12px 8px; padding: 10px 12px; color: #fff; font-weight: 800; font-size: 1rem; border-radius: 16px 16px 0 0; }
 .band.auction { background: var(--band-auction); color: var(--ink); }
 .band.trade { background: var(--band-trade); }
 .band.debt { background: var(--band-debt); }
@@ -140,8 +143,10 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .who { font-weight: 800; }
 .note { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
 .error { color: var(--btn-trade); margin-top: 6px; font-weight: 700; }
-.deed { border-radius: 12px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px var(--paperEdge); margin-top: 12px; }
-.deed-head { padding: 12px; font-weight: 800; font-size: 1.1rem; color: #fff; background: #555; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.deed { border-radius: 12px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px var(--paperEdge); margin-top: 10px; }
+.rent-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 4px; }
+.rent-grid .kv { padding: 2px 10px; font-size: 0.85rem; }
+.deed-head { padding: 10px 12px; font-weight: 800; font-size: 1.05rem; color: #fff; background: #555; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 .kv { display: flex; justify-content: space-between; padding: 4px 12px; font-size: 0.95rem; }
 .kv span:last-child { font-weight: 700; }
 .kv.sub { color: var(--muted); padding-top: 8px; }
@@ -158,11 +163,11 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .cash-in { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 0.85rem; font-weight: 700; }
 .cash-in input { min-height: var(--tap); border: 1px solid var(--paperEdge); border-radius: 10px; padding: 0 8px; width: 100%; background: #fff; }
 
-/* Full-screen overlays: hand-off, card, game over */
-.overlay { position: absolute; inset: 0; background: rgba(9,76,51,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
+/* Hand-off, card and game over: a small card over the board with a light backdrop (D-85). */
+.overlay { position: absolute; inset: 0; background: rgba(9,76,51,0.16); display: flex; align-items: center; justify-content: center; padding: 12px; z-index: 10; }
 .overlay[hidden], .sheet[hidden] { display: none; }
-.card-box { background: var(--paper); border-radius: 18px; padding: 0 22px 22px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-.card-box .band { margin: 0 -22px; width: calc(100% + 44px); border-radius: 0; text-align: center; }
+.card-box { background: var(--paper); border-radius: 16px; padding: 0 18px 18px; width: min(300px, 80%); display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; overflow: hidden; box-shadow: 0 8px 26px rgba(0,0,0,0.28); }
+.card-box .band { margin: 0 -18px; width: calc(100% + 36px); border-radius: 0; text-align: center; }
 .card-box .band.lucky { background: var(--band-lucky); }
 .card-box .band.dohs { background: var(--band-dohs); }
 .card-box .band.plain { background: var(--boardGreenDark); }
@@ -174,14 +179,21 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .chip.icon { padding: 4px 10px; }
 .chip.icon svg { display: block; }
 
-/* Desktop and landscape: player cards beside the board (plan 3.5) */
+/* Desktop and landscape (owner feedback, D-86): player info on the left, the board in the
+   middle, actions and every pop-up in a panel on the right. */
 @media (min-width: 900px) and (orientation: landscape) {
-  .game { grid-template-columns: 300px 1fr; grid-template-rows: auto 1fr auto auto; }
-  .top { grid-column: 1 / 3; }
-  .players { grid-row: 2 / 3; grid-column: 1; align-content: start; }
-  .board-wrap { grid-row: 2; grid-column: 2; }
-  .log, .actions { grid-column: 1 / 3; }
-  .sheet { left: auto; right: 16px; width: 440px; bottom: 16px; border-radius: 18px; max-height: 80%; }
+  .game { grid-template-columns: 280px 1fr 380px; grid-template-rows: auto 1fr; grid-template-areas: "top top top" "players board side"; }
+  .players { display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow-y: auto; box-shadow: inset -1px 0 0 var(--paperEdge); }
+  .roll { justify-content: flex-start; padding: 4px 0; }
+  .side { background: var(--paper); box-shadow: inset 1px 0 0 var(--paperEdge); }
+  .panel { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+  .panel .sheet { position: static; transform: none; width: auto; max-height: none; overflow: visible; font-size: 1rem; }
+  .panel .sheet.compact { max-height: none; }
+  .panel .overlay { position: static; background: none; padding: 0; display: block; }
+  .panel .overlay[hidden] { display: none; }
+  .panel .card-box { width: 100%; }
+  .log { background: transparent; }
+  .actions { box-shadow: inset 0 1px 0 var(--paperEdge); }
 }
 
 /* Frame-rate readout for measuring on the phone (?fps=1 or ?bench=1) */
