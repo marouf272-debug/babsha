@@ -1,6 +1,6 @@
 # Babsha style guide
 
-Status: S5. Camera chosen (D-76); set bands per owner feedback (D-77); style awaiting final owner confirmation. Sources: plan 3.6 to 3.10, the owner's references in docs/reference (D-71), and the owner's choice of the tilted 3D city (D-70). All art is made in code (CLAUDE.md): low-poly geometry, canvas textures, no image files, no image generation.
+Status: confirmed by the owner at the S5 gate (D-78). Camera: tabletop (D-76). Set bands per owner feedback (D-77). Sources: plan 3.6 to 3.10, the owner's references in docs/reference (D-71), and the owner's choice of the tilted 3D city (D-70). All art is made in code (CLAUDE.md): low-poly geometry, canvas textures, no image files, no image generation.
 
 ## 1. What the look is
 
@@ -119,7 +119,7 @@ Target: 40 frames per second on the iPhone 13 Pro (D-69), plus one mid-range And
 
 Budgets: pixel ratio at most 1.5, under 200 draw calls, under 60,000 triangles for the full board.
 
-S5 measurement with the Dark Blue group dressed: 185 draw calls and about 1,900 triangles. Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the iPhone figure comes from the owner. Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
+S5 measurement with the Dark Blue group dressed: 185 draw calls and about 1,900 triangles. Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
 
 ## 10. Small anchors at phone scale
 
