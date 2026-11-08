@@ -16,7 +16,7 @@ export interface SimReport {
   violations: string[];
   events: Record<string, number>;
   propertiesOwnedAtEnd: number;
-  playersBelowZeroAtEnd: number;
+  gamesWon: number;
   finalStates: GameState[];
 }
 
@@ -35,6 +35,9 @@ function bankFlow(events: GameEvent[]): number {
     else if (e.type === 'buildingSold') flow += e.refund;
     else if (e.type === 'mortgaged') flow += e.amount;
     else if (e.type === 'redeemed') flow -= e.cost;
+    else if (e.type === 'debtPaid' || e.type === 'bankrupt') {
+      for (const t of e.transfers) if (t.to === 'bank') flow -= t.amount;
+    }
   }
   return flow;
 }
@@ -51,7 +54,24 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
     if (p.inJam && p.position !== rules.jamPos) v.push(`player ${i} in Jam but at ${p.position}`);
     if (!p.inJam && p.jamFailedRolls !== 0) v.push(`player ${i} has failed rolls outside Jam`);
     if (!Number.isFinite(p.cash) || !Number.isInteger(p.cash)) v.push(`player ${i} cash ${p.cash}`);
+    if (p.cash < 0) v.push(`player ${i} cash below zero: ${p.cash}`);
+    if (p.bankrupt && (p.cash !== 0 || p.jamCards.length > 0)) v.push(`bankrupt player ${i} still holds cash or cards`);
+    if (p.bankrupt && Object.values(after.properties).some((x) => x.owner === i)) v.push(`bankrupt player ${i} still owns property`);
   });
+  if (after.turn.phase === 'DEBT' && after.debts.length === 0) v.push('DEBT phase with no debt');
+  if (after.turn.phase !== 'DEBT' && after.turn.phase !== 'GAME_OVER' && after.debts.length > 0) v.push(`debts left open in ${after.turn.phase}`);
+  if (after.turn.phase === 'AUCTION' && !after.auction) v.push('AUCTION phase with no auction');
+  if (after.turn.phase !== 'AUCTION' && after.auction) v.push(`auction left open in ${after.turn.phase}`);
+  const aliveCount = after.players.filter((p) => !p.bankrupt).length;
+  if (after.turn.phase === 'GAME_OVER') {
+    if (aliveCount !== 1 || after.winner === null || after.players[after.winner]!.bankrupt) v.push('GAME_OVER without exactly one solvent winner');
+  } else if (aliveCount < 2) v.push(`only ${aliveCount} solvent players but game not over`);
+  // D-50: a bankrupt active player's properties are auctioned before the turn passes, so the turn
+  // may still point at them during AUCTION or a queued DEBT, but never anywhere else.
+  if (!['GAME_OVER', 'AUCTION', 'DEBT'].includes(after.turn.phase) && after.players[after.turn.active]!.bankrupt) v.push(`a bankrupt player is active in ${after.turn.phase}`);
+  for (const a of engine.legalActions(after)) {
+    if (a.player !== undefined && after.players[a.player]!.bankrupt) v.push(`bankrupt player ${a.player} has a legal action ${a.type}`);
+  }
   for (const [id, prop] of Object.entries(after.properties)) {
     const t = rules.tiles.find((x) => x.id === id);
     if (!t || !['property', 'hub', 'utility'].includes(t.type)) v.push(`owned tile ${id} is not buyable`);
@@ -67,8 +87,9 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
     if (props.some((x) => x?.mortgaged)) v.push(`buildings on a mortgaged set ${members.join(',')}`);
     if (Math.max(...houses) - Math.min(...houses) > 1) v.push(`uneven buildings on ${members.join(',')}: ${houses.join(',')}`);
   }
+  const moved = new Set(events.flatMap((e) => (e.type === 'bankrupt' ? ['bankrupt'] : [])));
   for (const [id, prop] of Object.entries(before.properties)) {
-    if (after.properties[id]?.owner !== prop.owner) v.push(`tile ${id} changed owner without a trade`);
+    if (after.properties[id]?.owner !== prop.owner && !moved.has('bankrupt')) v.push(`tile ${id} changed owner without a trade or bankruptcy`);
   }
   if (after.turn.phase === 'BUY_DECISION') {
     const id = after.turn.pendingTile;
@@ -83,6 +104,7 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
 // (build, redeem) more often than things that stall them (mortgage, sell). Not an AI: S3 adds those.
 const WEIGHTS: Partial<Record<Action['type'], number>> = {
   END_TURN: 5, BUILD: 4, REDEEM: 2, BUY: 3, SELL_BUILDING: 0.3, MORTGAGE: 0.3,
+  PAY_DEBT: 50, DECLARE_BANKRUPTCY: 0.2,
 };
 
 function pickWeighted(legal: Action[], r: number): Action {
@@ -96,7 +118,7 @@ function pickWeighted(legal: Action[], r: number): Action {
 }
 
 export function simulate(engine: Engine, opts: SimOptions): SimReport {
-  const report: SimReport = { games: 0, actions: 0, turns: 0, violations: [], events: {}, propertiesOwnedAtEnd: 0, playersBelowZeroAtEnd: 0, finalStates: [] };
+  const report: SimReport = { games: 0, actions: 0, turns: 0, violations: [], events: {}, propertiesOwnedAtEnd: 0, gamesWon: 0, finalStates: [] };
   let agentRng = opts.seed ^ 0x5bd1e995;
   for (let g = 0; g < opts.games; g++) {
     const players = 2 + (g % 5); // cycles 2 to 6 players
@@ -117,7 +139,7 @@ export function simulate(engine: Engine, opts: SimOptions): SimReport {
     }
     report.turns += state.turnCount;
     report.propertiesOwnedAtEnd += Object.keys(state.properties).length;
-    report.playersBelowZeroAtEnd += state.players.filter((p) => p.cash < 0).length;
+    if (state.turn.phase === 'GAME_OVER') report.gamesWon++;
     report.finalStates.push(state);
     report.games++;
   }

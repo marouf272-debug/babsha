@@ -89,8 +89,4 @@ describe('Jam (FR-02, FR-10 entry and exit, R-35, R-36, R-49 to R-52)', () => {
     expect(ofType(r.events, 'leftJam')).toEqual([{ type: 'leftJam', player: me, by: 'forcedFine' }]);
   });
 
-  it('S1 STUB (D-24): a forced fine may take cash below zero until DEBT arrives in S2', () => {
-    const s0 = jailed((s) => { const p = s.players[s.turn.active]!; p.jamFailedRolls = 2; p.cash = 100; });
-    expect(rollAs(s0, 1, 2).state.players[s0.turn.active]!.cash).toBe(-400);
-  });
 });

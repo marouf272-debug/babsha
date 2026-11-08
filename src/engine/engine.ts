@@ -2,7 +2,7 @@
 // Rule IDs (R-xx, D-xx) refer to docs/RULES.md and docs/DECISIONS.md.
 
 import { rollDice } from './rng';
-import type { Action, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile } from './types';
+import type { Action, CashTarget, Creditor, DebtReason, GameEvent, GameState, NewGameOptions, Rules, StepResult, Tile } from './types';
 
 export class IllegalActionError extends Error {}
 
@@ -115,6 +115,13 @@ export function createEngine(rules: Rules): Engine {
       }
       case 'MANAGE':
         return [...manageActions(state, me, 'MANAGE'), { type: 'END_TURN', player: me }];
+      case 'DEBT': {
+        const d = state.debts[0]!;
+        const actions = manageActions(state, d.debtor, 'DEBT');
+        if (state.players[d.debtor]!.cash >= d.amount) actions.push({ type: 'PAY_DEBT', player: d.debtor });
+        actions.push({ type: 'DECLARE_BANKRUPTCY', player: d.debtor }); // D-49: allowed at any time in DEBT
+        return actions;
+      }
       default:
         return [];
     }
@@ -330,6 +337,18 @@ export function createEngine(rules: Rules): Engine {
         break;
       }
 
+      case 'PAY_DEBT': {
+        const debt = state.debts.shift()!;
+        const transfers = transfer(state, debt.debtor, debt.creditor, debt.amount);
+        events.push({ type: 'debtPaid', debt, transfers });
+        if (debt.reason === 'jamFine') events.push({ type: 'leftJam', player: debt.debtor, by: 'forcedFine' });
+        break;
+      }
+
+      case 'DECLARE_BANKRUPTCY':
+        bankrupt(state, events);
+        break;
+
       case 'END_TURN':
         endTurn(state, events);
         break;
@@ -359,6 +378,10 @@ export function createEngine(rules: Rules): Engine {
   // Decides what happens next after any action: debts first, then auctions, then the normal turn.
   function settle(state: GameState, events: GameEvent[]): void {
     if (state.turn.phase === 'GAME_OVER') return;
+    if (state.debts.length > 0) {
+      state.turn.phase = 'DEBT'; // D-49: debts first, one debtor at a time
+      return;
+    }
     if (state.auction) {
       state.turn.phase = 'AUCTION';
       return;
@@ -367,7 +390,91 @@ export function createEngine(rules: Rules): Engine {
       startAuction(state, events, state.auctionQueue.shift()!);
       return;
     }
-    if (state.turn.phase === 'AUCTION') state.turn.phase = 'MANAGE';
+    if (state.players[state.turn.active]!.bankrupt) {
+      passTurn(state, events);
+      return;
+    }
+    if (state.pendingMove !== null) {
+      // D-50: the forced Jam fine is paid, now move by that roll.
+      const steps = state.pendingMove;
+      state.pendingMove = null;
+      move(state, events, steps);
+      settle(state, events);
+      return;
+    }
+    if (state.turn.phase === 'AUCTION' || state.turn.phase === 'DEBT') state.turn.phase = 'MANAGE';
+  }
+
+  // ---------- debt and bankruptcy (FR-11) ----------
+
+  // Moves cash to a creditor. For a split creditor, each player gets an equal whole share and any
+  // remainder goes to the bank (D-48).
+  function transfer(state: GameState, from: number, creditor: Creditor, amount: number): Array<{ to: CashTarget; amount: number }> {
+    state.players[from]!.cash -= amount;
+    if (creditor.kind === 'player') {
+      state.players[creditor.player]!.cash += amount;
+      return [{ to: creditor.player, amount }];
+    }
+    if (creditor.kind === 'bank') return [{ to: 'bank', amount }];
+    const share = Math.floor(amount / creditor.players.length);
+    const out: Array<{ to: CashTarget; amount: number }> = creditor.players.map((pl) => {
+      state.players[pl]!.cash += share;
+      return { to: pl, amount: share };
+    });
+    const rest = amount - share * creditor.players.length;
+    if (rest > 0) out.push({ to: 'bank', amount: rest });
+    return out;
+  }
+
+  // R-54 to R-57, D-38, D-45, D-50.
+  function bankrupt(state: GameState, events: GameEvent[]): void {
+    const debt = state.debts.shift()!;
+    const d = debt.debtor;
+    const p = state.players[d]!;
+    // Buildings are sold to the bank at 50 percent first.
+    for (const t of tiles) {
+      while (state.properties[t.id]?.owner === d && state.properties[t.id]!.houses > 0) sellBuilding(state, events, d, t.id);
+    }
+    const mine = tiles.filter((t) => state.properties[t.id]?.owner === d).map((t) => t.id);
+    let transfers: Array<{ to: CashTarget; amount: number }>;
+    let tilesTo: CashTarget | 'auction';
+    if (debt.creditor.kind === 'player') {
+      const c = debt.creditor.player;
+      transfers = transfer(state, d, debt.creditor, p.cash);
+      for (const id of mine) state.properties[id]!.owner = c; // mortgages stay (D-38)
+      tilesTo = c;
+    } else {
+      const creditor: Creditor = debt.creditor.kind === 'split'
+        ? { kind: 'split', players: debt.creditor.players.filter((pl) => !state.players[pl]!.bankrupt && pl !== d) }
+        : { kind: 'bank' };
+      transfers = creditor.kind === 'split' && creditor.players.length === 0 ? transfer(state, d, { kind: 'bank' }, p.cash) : transfer(state, d, creditor, p.cash);
+      for (const id of mine) delete state.properties[id]; // mortgages cleared, back to auction
+      state.auctionQueue.push(...mine);
+      tilesTo = 'auction';
+    }
+    for (const held of p.jamCards) state.decks[held.deck].push(held.cardId); // D-40
+    p.jamCards = [];
+    p.bankrupt = true;
+    p.inJam = false;
+    p.jamFailedRolls = 0;
+    if (state.trade && (state.trade.from === d || state.trade.to === d)) state.trade = null;
+    if (d === state.turn.active) {
+      state.pendingMove = null;
+      state.turn.extraRoll = false;
+    }
+    events.push({ type: 'bankrupt', player: d, creditor: debt.creditor, transfers, tilesTo });
+
+    const left = alive(state);
+    if (left.length === 1) {
+      // R-56: the last solvent player wins.
+      state.winner = left[0]!;
+      state.turn.phase = 'GAME_OVER';
+      state.debts = [];
+      state.auction = null;
+      state.auctionQueue = [];
+      state.pendingMove = null;
+      events.push({ type: 'gameOver', winner: left[0]! });
+    }
   }
 
   // ---------- auction (FR-04) ----------
@@ -397,13 +504,17 @@ export function createEngine(rules: Rules): Engine {
     }
   }
 
-  // Moves cash from one player to a creditor. S1 STUB (D-24): cash may go below zero, no DEBT yet.
+  // Pays a creditor if the payer can. Otherwise records a debt for the full amount (D-49) and
+  // returns false; settle() then enters DEBT.
   function pay(state: GameState, events: GameEvent[], from: number, creditor: Creditor, amount: number, reason: DebtReason): boolean {
-    void events;
-    void reason;
-    state.players[from]!.cash -= amount;
-    if (creditor.kind === 'player') state.players[creditor.player]!.cash += amount;
-    return true;
+    if (state.players[from]!.cash >= amount) {
+      transfer(state, from, creditor, amount);
+      return true;
+    }
+    const debt = { debtor: from, creditor, amount, reason };
+    state.debts.push(debt);
+    events.push({ type: 'debtCreated', debt });
+    return false;
   }
 
   function roll(state: GameState, events: GameEvent[]): void {
@@ -437,7 +548,8 @@ export function createEngine(rules: Rules): Engine {
           events.push({ type: 'leftJam', player: me, by: 'forcedFine' });
           move(state, events, total);
         } else {
-          state.pendingMove = total; // D-50: settle the fine in DEBT, then move.
+          // D-50: settle the fine in DEBT, then move. The player stays on the Jam tile until then.
+          state.pendingMove = total;
           state.turn.phase = 'MANAGE';
         }
         return;
