@@ -74,6 +74,10 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-66 | 2026-11-08 | Builder reading for S4: player names are their token names in the chosen language (Rickshaw, CNG auto, ...), so every visible string switches with the language toggle. Typed custom names can come later. | Builder | FR-15 acceptance check. |
 | D-67 | 2026-11-08 | Builder reading for S4: tile signs are drawn upright for the fixed camera, not rotated per board side as on a printed board. | Builder | Readability from one fixed viewpoint; revisit with the S5 style guide. |
 | D-68 | 2026-11-08 | S4 acceptance: the owner completed a full two-player Pass & Play game on their own phone over the local network. Phone test passed. | Owner | Plan 4.3 S4 check. Together with the automated language check, both S4 acceptance checks pass. |
+| D-69 | 2026-11-08 | Test device: iPhone 13 Pro, target 40 frames per second. One extra check on a friend's mid-range Android phone before S7. | Owner | Plan Appendix B item 2. The iPhone is high end, so the Android check covers plan risk R8. |
+| D-70 | 2026-11-08 | Board look stays the tilted 3D Dhaka city from the plan. The references guide readability and the interface, not the board view. | Owner | Plan 3.6 and 3.7. S5 still compares two camera presets. |
+| D-71 | 2026-11-08 | From the style references take: big readable tiles, bold buttons and dialogs with colored headers, player cards in a 2 by 2 grid around the dice, and tapping highlighted tiles on the board for build, sell, mortgage and redeem. Principles only, not the source app's look. Notes in docs/reference/README.md. | Owner | Plan 4.4. |
+| D-72 | 2026-11-08 | Gap found: FR-17 asks for a fixed action bar with separate Build, Sell, Mortgage, Redeem and Trade buttons. S4 merged the first four into one button. Fixed at the start of S5. | Builder | Spotted while studying the references. |
 
 ## Open questions
 
