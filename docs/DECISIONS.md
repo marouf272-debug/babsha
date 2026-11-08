@@ -73,6 +73,7 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-65 | 2026-11-08 | Skill conflicts resolved for the plan: prototype-fast says greybox code is throwaway, but the plan builds S5 and S6 on the S4 interface, so it is written to keep. threejs-scene-setup uses a perspective camera with orbit controls; the plan fixes one orthographic camera with no pan or zoom. | Builder | CLAUDE.md: follow the plan, report the conflict. |
 | D-66 | 2026-11-08 | Builder reading for S4: player names are their token names in the chosen language (Rickshaw, CNG auto, ...), so every visible string switches with the language toggle. Typed custom names can come later. | Builder | FR-15 acceptance check. |
 | D-67 | 2026-11-08 | Builder reading for S4: tile signs are drawn upright for the fixed camera, not rotated per board side as on a printed board. | Builder | Readability from one fixed viewpoint; revisit with the S5 style guide. |
+| D-68 | 2026-11-08 | S4 acceptance: the owner completed a full two-player Pass & Play game on their own phone over the local network. Phone test passed. | Owner | Plan 4.3 S4 check. Together with the automated language check, both S4 acceptance checks pass. |
 
 ## Open questions
 
