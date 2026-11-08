@@ -28,7 +28,7 @@ Inputs every profile uses:
 
 | Decision | Rule of thumb |
 |---|---|
-| Buy | Buy when tile value is worth it and cash after buying stays near the reserve. Always buy a set completion if cash allows. Hard declines a tile no opponent has started, to win it cheaper at auction. |
+| Buy | Buy when tile value is worth it and cash after buying stays near the reserve. Always buy a set completion if cash allows. In two-player games, Hard declines a tile its opponent has not started, to win it cheaper at auction. |
 | Bid | Bid the minimum while it is below the player's own value for the tile and cash stays above half the reserve. Otherwise fold. |
 | Build | Build on the set with the best rent gain per Taka while cash stays above the reserve. |
 | Redeem | Redeem when cash is well above the reserve, set properties first. |
@@ -44,15 +44,16 @@ Inputs every profile uses:
 | Reserve | large (timid, holds cash) | moderate | moderate, plus a share of the worst rent on the board |
 | Set completion and blocking | weak | normal | strong |
 | Landing frequency | not used | not used | used |
-| Declines uncontested tiles to buy them at auction | no | no | yes |
+| Declines uncontested tiles to buy them at auction | no | no | yes, two-player games only |
 | Trade offer ceiling | low | normal | high |
 | Stays in Jam late game | no | no | yes |
 
 ## Tuning notes (S3)
 
-Measured with 200 two-player games per pairing, seats swapped half the time:
+Final numbers are in sim/reports/balance.md, section 2. In short:
 
-- Medium beats Easy about 57 percent of the time, Hard beats Medium about 56 percent, Hard beats Easy about 73 percent.
-- A first draft gave the opposite order. Two causes: buying single tiles to consolidate holdings handed cash to the seller, and Easy's random declines exploited cheap auctions (see the balance report). Consolidation trades were removed and Easy became a cash-hoarding player.
+- Head to head (600 games each): Medium beats Easy 57 percent, Hard beats Easy 62 percent, Hard beats Medium 53 percent.
+- Three-player games (1,800): Medium 37 percent, Hard 33 percent, Easy 30 percent. These gaps are close to chance; the levels are only clearly different head to head.
+- A first draft gave the opposite order. Two causes: buying single tiles to consolidate holdings handed cash to the seller, and Easy's random declines exploited cheap auctions. Consolidation trades were removed, Easy became a cash-hoarding player, and Hard's auction tactic is limited to two-player games, where auctions are cheap.
 
 Exact numbers: `data/ai-profiles.json`.

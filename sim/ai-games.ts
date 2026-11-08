@@ -29,11 +29,12 @@ export interface AiGameOptions {
   profiles: Array<{ id: string; profile: AiProfile }>;
   maxTurns: number;
   checkInvariants: boolean;
+  startCash?: number;
 }
 
 export function playAiGame(engine: Engine, ai: Ai, opts: AiGameOptions): AiGameResult {
   const n = opts.profiles.length;
-  const created = engine.newGame({ playerIds: opts.profiles.map((p, i) => `${p.id}${i}`), seed: opts.seed });
+  const created = engine.newGame({ playerIds: opts.profiles.map((p, i) => `${p.id}${i}`), seed: opts.seed, ...(opts.startCash ? { startCash: opts.startCash } : {}) });
   let state: GameState = created.state;
   const first = state.turn.active;
   const memories: AiMemory[] = opts.profiles.map(() => emptyMemory());

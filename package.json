@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "eslint .",
-    "sim": "vitest run sim"
+    "sim": "vitest run sim",
+    "balance": "vitest run --config vitest.balance.config.ts"
   },
   "dependencies": {
     "three": "0.186.0"

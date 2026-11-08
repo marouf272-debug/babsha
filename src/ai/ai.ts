@@ -147,7 +147,8 @@ export function createAi(engine: Engine): Ai {
         if (!has('BUY')) return done({ type: 'DECLINE', player: pl });
         const after = me.cash - price;
         if (completesSet(state, pl, t) && after >= 0) return done({ type: 'BUY', player: pl });
-        if (profile.declineToAuction) {
+        // Auctions are only cheap head to head (balance report), so this applies with one opponent.
+        if (profile.declineToAuction && others(state, pl).length === 1) {
           // An opponent is only expected to bid above list if they already own part of the group.
           const contested = others(state, pl).some((o) => groupOf(t).some((id) => id !== t.id && state.properties[id]?.owner === o));
           if (!contested) return done({ type: 'DECLINE', player: pl });

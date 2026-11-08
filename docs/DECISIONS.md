@@ -63,6 +63,7 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-55 | 2026-11-08 | AI randomness uses its own seeded generator, separate from the game's dice, so a game still replays exactly from its seed. | Builder | Plan 3.1. |
 | D-56 | 2026-11-08 | Computer players do not trade while in DEBT and only mortgage to settle a debt. | Builder | Keeps S3 AI simple. FR-13 asks that they mortgage and trade, which they do. Can be extended. |
 | D-57 | 2026-11-08 | Difficulty order is checked by simulation: Hard must beat Easy in more than 60 percent of head-to-head games (a test in npm test). | Builder | FR-13 names three levels; the test stops a later change from silently inverting them. |
+| D-58 | 2026-11-08 | Hard declines uncontested tiles to buy them at auction only in two-player games. | Builder | Balance report: auctions sell at 19 percent of list with 2 players but 88 percent with 4, and an always-decline player wins only 21 percent of 4-player games. |
 
 ## Open questions
 
@@ -70,4 +71,8 @@ Each needs an owner answer. The Blocks column names the sprint that cannot code 
 
 | ID | Question | Where it came from | Blocks |
 |---|---|---|---|
-| Q-02 | Plan 2.3 says keep the spec ratio of start cash to prices. The plan does not give the spec property prices, so I cannot check the ratio. With the proposal, start cash ৳10,000 is 2.5 times the top price. Is that the ratio you intended? | Plan 2.3 | S3 |
+| Q-02 | **Data in sim/reports/balance.md section 3.** Start cash ৳10,000, ৳12,500 and ৳15,000 give nearly the same games (median 51.5, 49.8 and 47.0 rounds); first-mover advantage does not change. Recommendation: keep ৳10,000. Original question: plan 2.3 says keep the spec ratio of start cash to prices. The plan does not give the spec property prices, so I cannot check the ratio. With the proposal, start cash ৳10,000 is 2.5 times the top price. Is that the ratio you intended? | Plan 2.3 | S3 |
+| Q-26 | **Approve the economy numbers, or send them back for tuning** (plan 4.3 S3 check). Evidence: sim/reports/balance.md. Every computer game reaches a winner, turn order is close to fair, and start cash barely matters. Recommendation: approve as they are and retune after the first playtest. | Plan 4.3 | S4 |
+| Q-27 | Two-player auction loophole: with 2 players, 47 percent of purchases happen at auction at a median of 19 percent of list price, because the auction opens at ৳0 and the decliner may bid. Keep the approved rule, or add an opening bid floor (for example 50 percent of list)? Recommendation: keep it for now; human players bid more than these AIs, so check it in the playtest first. | Balance report section 1 and 4 | S7 |
+| Q-28 | Difficulty levels: Hard is clearly stronger than Easy head to head (62 percent), but in games of 3 or more the three levels are close. Accept this for release 1, or invest in a stronger Hard (lookahead by simulation, a larger piece of work)? Recommendation: accept for release 1. | Balance report section 2 | S7 |
+| Q-29 | Game length: Medium games take a median of 52 rounds with 4 players (about 200 turns) and 65 rounds with 2. That may be long for a phone session. No change proposed now; measure real minutes per turn in S4 and the playtest. | Balance report section 1 | Playtest |

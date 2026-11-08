@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 // Plan 5: every FR in section 2.1 maps to at least one test. Requirements join this list as
 // their sprint lands; the full list is required at gate G5.
-const REQUIRED_SO_FAR = ['FR-01', 'FR-02', 'FR-03', 'FR-04', 'FR-05', 'FR-06', 'FR-07', 'FR-08', 'FR-09', 'FR-10', 'FR-11'];
+const REQUIRED_SO_FAR = ['FR-01', 'FR-02', 'FR-03', 'FR-04', 'FR-05', 'FR-06', 'FR-07', 'FR-08', 'FR-09', 'FR-10', 'FR-11', 'FR-13'];
 
 const ROOT = join(import.meta.dirname, '..', '..');
 function testFiles(dir: string, out: string[] = []): string[] {
