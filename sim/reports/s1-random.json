@@ -1,0 +1,28 @@
+{
+  "games": 1000,
+  "actions": 1000000,
+  "turns": 277342,
+  "violations": [],
+  "events": {
+    "turnStarted": 278068,
+    "diceRolled": 328234,
+    "moved": 321455,
+    "landed": 321455,
+    "offerPurchase": 58397,
+    "declined": 30932,
+    "auctionStub": 30932,
+    "turnPassed": 277342,
+    "extraRoll": 50528,
+    "purchased": 27461,
+    "cardStub": 48195,
+    "salary": 49846,
+    "rentPaid": 121099,
+    "taxPaid": 14325,
+    "sentToJam": 9674,
+    "jamFinePaid": 8128,
+    "leftJam": 9440,
+    "stayedInJam": 5640
+  },
+  "propertiesOwnedAtEnd": 27461,
+  "playersBelowZeroAtEnd": 7
+}
