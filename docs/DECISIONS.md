@@ -57,6 +57,7 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-49 | 2026-11-08 | Builder reading: a payment larger than the payer's cash creates a debt for the full amount and the DEBT state. The debtor raises cash, then pays, or declares bankruptcy at any time in DEBT. Several debts at once (a "collect from each" card) are settled one debtor at a time in seat order after the active player. Then the turn continues where it stopped. | Builder | Plan 3.2 DEBT state, R-53. |
 | D-50 | 2026-11-08 | Builder reading: properties returned to auction by a bankruptcy are auctioned one at a time in board order before play continues. A forced Jam fine that cannot be paid is settled in DEBT first, then the player moves. | Builder | |
 | D-51 | 2026-11-08 | Builder reading: trades cover properties and cash only, not held Jam cards. The proposer offers one trade to one player, who accepts or rejects it. | Builder | FR-08 says "properties and cash". |
+| D-52 | 2026-11-08 | Builder reading of D-34: when the timer runs out on a waiting trade, the trade is rejected. There is no timer before the roll, matching D-34's list. | Builder | Rejecting is the passive choice. Owner may overrule. |
 
 ## Open questions
 

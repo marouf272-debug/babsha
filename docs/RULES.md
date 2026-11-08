@@ -119,7 +119,7 @@ How to read this document:
 
 - **R-58** Release 1 has Pass & Play and vs Computer. (plan decisions table, FR-12, FR-13)
 - **R-59** vs Computer has Easy, Medium and Hard profiles that buy, bid, build, mortgage and trade. (FR-13)
-- **R-60** Settings: player count, starting cash, optional turn timer. (FR-14) The timer is off by default, 30 seconds per decision when on. Expiry takes the passive choice: decline the buy, fold the bid, end the turn. No timer in DEBT. (D-34)
+- **R-60** Settings: player count, starting cash, optional turn timer. (FR-14) The timer is off by default, 30 seconds per decision when on. Expiry takes the passive choice: decline the buy, fold the bid, end the turn, reject a waiting trade. No timer in DEBT or before the roll. (D-34, D-52)
 - **R-61** A game can be saved and resumed on the same device, if feasible. (FR-19)
 - **R-62** Not in release 1: board pan, zoom and auto-focus (FR-18, dropped), online matchmaking and rooms (FR-20, Won't).
 

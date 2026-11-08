@@ -14,6 +14,8 @@ export interface Engine {
   rentFor(state: GameState, tileId: string, diceTotal: number): number;
   // Why a trade offer from the current manager would be refused, or null if it is valid.
   tradeProblem(state: GameState, offer: Omit<TradeOffer, 'from'>): string | null;
+  // The action a turn timer takes when it runs out, or null where there is no timer (D-34, D-52).
+  passiveAction(state: GameState, player?: number): Action | null;
 }
 
 export function createEngine(rules: Rules): Engine {
@@ -223,6 +225,27 @@ export function createEngine(rules: Rules): Engine {
       }
     }
     return null;
+  }
+
+  // ---------- turn timer (FR-14) ----------
+
+  // D-34: expiry takes the passive choice. D-52: rejecting a waiting trade is its passive choice.
+  // No timer in DEBT, START_TURN, ROLL or GAME_OVER.
+  function passiveAction(state: GameState, player?: number): Action | null {
+    if (state.trade) return { type: 'REJECT_TRADE', player: state.trade.to };
+    switch (state.turn.phase) {
+      case 'BUY_DECISION':
+        return { type: 'DECLINE', player: state.turn.active };
+      case 'AUCTION': {
+        const a = state.auction!;
+        if (player === undefined || player === a.highBidder || !a.inPlayers.includes(player)) return null;
+        return { type: 'FOLD', player };
+      }
+      case 'MANAGE':
+        return { type: 'END_TURN', player: state.turn.active };
+      default:
+        return null;
+    }
   }
 
   // D-46: management actions for the active player in MANAGE, or the debtor in DEBT (D-39).
@@ -820,5 +843,5 @@ export function createEngine(rules: Rules): Engine {
     events.push({ type: 'turnPassed', from: me, to: next });
   }
 
-  return { rules, newGame, legalActions, step, rentFor, tradeProblem };
+  return { rules, newGame, legalActions, step, rentFor, tradeProblem, passiveAction };
 }
