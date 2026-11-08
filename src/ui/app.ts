@@ -13,6 +13,7 @@ import { Sfx } from '../audio/sfx';
 import { cardArt } from './cardArt';
 import { icon } from './icons';
 import { h } from './dom';
+import { textOn } from './contrast';
 import { Session, type SeatKind } from './session';
 import { clearSave, deviceStorage, loadSave, writeSave, type GameSettings, type SaveGame } from './save';
 
@@ -540,7 +541,7 @@ export class App {
       rules.config.utility.diceMultiplierByUtilitiesOwned.forEach((m, i) => rows.push([t('deed.owning', { n: num(i + 1) }), t('deed.diceTimes', { n: num(m) })]));
     }
     return h('div', { class: 'deed' },
-      h('div', { class: 'deed-head', style: tile.group ? `background:${this.o.sceneConfig.colors.groups[tile.group]}` : '' },
+      h('div', { class: 'deed-head', style: tile.group ? this.groupStyle(tile.group) : '' },
         tile.group ? `${this.o.sceneConfig.groupSymbols[tile.group]} ` : '', t(tile.nameKey)),
       h('div', { class: 'kv' }, h('span', {}, t('deed.price')), h('span', {}, money(q.price))),
       h('div', { class: 'kv' }, h('span', {}, t('deed.mortgage')), h('span', {}, money(q.mortgageValue))),
@@ -593,7 +594,7 @@ export class App {
       closable ? h('div', { class: 'band manage' }, t('manage.title', { name: playerName(who) })) : h('h3', {}, t('manage.title', { name: playerName(who) })),
       closable && this.mode ? h('div', { class: 'note' }, t('manage.tapHint')) : null,
       rows.length ? h('div', { class: 'props' }, ...rows) : h('div', { class: 'note' }, t('manage.none')),
-      closable ? h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.mode = null; this.render(); } }, t('action.close'))) : null,
+      closable ? h('div', { class: 'row' }, h('button', { 'data-testid': 'manage-close', onclick: () => { this.panel = null; this.mode = null; this.render(); } }, t('action.close'))) : null,
     );
   }
 
@@ -627,7 +628,7 @@ export class App {
         h('div', { class: 'row' }, h('button', { class: 'primary', 'data-testid': 'trade-propose', onclick: () => this.propose(who) }, t('trade.propose'))),
       );
     }
-    body.append(h('div', { class: 'row' }, h('button', { onclick: () => { this.panel = null; this.render(); } }, t('action.cancel'))));
+    body.append(h('div', { class: 'row' }, h('button', { 'data-testid': 'trade-cancel', onclick: () => { this.panel = null; this.render(); } }, t('action.cancel'))));
     return body;
   }
 
@@ -761,7 +762,14 @@ export class App {
   // Hubs and utilities have no set, so their tag is plain.
   private tileTag(tile: Tile): HTMLElement {
     if (!tile.group) return h('span', { class: 'tag plain' }, t(tile.nameKey));
-    return h('span', { class: 'tag', style: `background:${this.o.sceneConfig.colors.groups[tile.group]}` }, `${this.o.sceneConfig.groupSymbols[tile.group] ?? ''} ${t(tile.nameKey)}`);
+    return h('span', { class: 'tag', style: this.groupStyle(tile.group) }, `${this.o.sceneConfig.groupSymbols[tile.group] ?? ''} ${t(tile.nameKey)}`);
+  }
+
+  // Set color background with white or ink text, whichever has the contrast (D-96).
+  private groupStyle(group: string): string {
+    const bg = this.o.sceneConfig.colors.groups[group] ?? '#555555';
+    const ink = textOn(bg) !== '#FFFFFF';
+    return `background:${bg};color:${textOn(bg)}${ink ? ';text-shadow:none' : ''}`;
   }
 
   private infoSheet(s: GameState, info: NonNullable<App['info']>): HTMLElement {

@@ -24,6 +24,6 @@ describe('offline service worker (plan 2.2 offline, D-94)', () => {
     expect(src).toContain("request.method !== 'GET'");
     expect(src).toContain('url.origin !== self.location.origin');
     expect(src).not.toMatch(/https?:\/\//);
-    expect(src).not.toContain('—');
+    expect(src).not.toContain(String.fromCharCode(0x2014));
   });
 });
