@@ -148,6 +148,26 @@ export function createEngine(rules: Rules): Engine {
     return mine.houses === Math.max(...setOf(t).map((id) => state.properties[id]?.houses ?? 0));
   }
 
+  // ---------- mortgage (FR-07) ----------
+
+  const mortgageValue = (t: Tile) => priceOf(t) * config.mortgage.rate;
+  const redeemCost = (t: Tile) => Math.round(mortgageValue(t) * (1 + config.mortgage.redeemInterest));
+
+  // R-43, D-30: owned, not mortgaged, and for a property the whole set has no buildings.
+  function canMortgage(state: GameState, pl: number, t: Tile): boolean {
+    if (!isBuyable(t)) return false;
+    const mine = state.properties[t.id];
+    if (!mine || mine.owner !== pl || mine.mortgaged) return false;
+    if (t.type === 'property' && setOf(t).some((id) => (state.properties[id]?.houses ?? 0) > 0)) return false;
+    return true;
+  }
+
+  // R-44: principal plus 10 percent.
+  function canRedeem(state: GameState, pl: number, t: Tile): boolean {
+    const mine = state.properties[t.id];
+    return !!mine && mine.owner === pl && mine.mortgaged && state.players[pl]!.cash >= redeemCost(t);
+  }
+
   // D-46: management actions for the active player in MANAGE, or the debtor in DEBT (D-39).
   function manageActions(state: GameState, pl: number, phase: 'MANAGE' | 'DEBT'): Action[] {
     const actions: Action[] = [];
@@ -156,6 +176,12 @@ export function createEngine(rules: Rules): Engine {
     }
     for (const t of tiles) {
       if (canSell(state, pl, t)) actions.push({ type: 'SELL_BUILDING', player: pl, tileId: t.id });
+    }
+    for (const t of tiles) {
+      if (canMortgage(state, pl, t)) actions.push({ type: 'MORTGAGE', player: pl, tileId: t.id });
+    }
+    for (const t of tiles) {
+      if (phase === 'MANAGE' && canRedeem(state, pl, t)) actions.push({ type: 'REDEEM', player: pl, tileId: t.id });
     }
     return actions;
   }
@@ -281,6 +307,26 @@ export function createEngine(rules: Rules): Engine {
       case 'SELL_BUILDING': {
         const pl = actor(state);
         sellBuilding(state, events, pl, action.tileId);
+        break;
+      }
+
+      case 'MORTGAGE': {
+        const pl = actor(state);
+        const t = tile(action.tileId);
+        const amount = mortgageValue(t);
+        state.properties[t.id]!.mortgaged = true;
+        state.players[pl]!.cash += amount;
+        events.push({ type: 'mortgaged', player: pl, tileId: t.id, amount });
+        break;
+      }
+
+      case 'REDEEM': {
+        const pl = actor(state);
+        const t = tile(action.tileId);
+        const cost = redeemCost(t);
+        state.properties[t.id]!.mortgaged = false;
+        state.players[pl]!.cash -= cost;
+        events.push({ type: 'redeemed', player: pl, tileId: t.id, cost });
         break;
       }
 

@@ -1,7 +1,7 @@
 // Headless simulation harness (plan 3.4 /sim). Plays random legal actions and checks invariants
 // after every step. S1: random agents only; AI profiles arrive in S3.
 
-import { nextFloat, type Engine, type GameEvent, type GameState } from '../src/engine';
+import { nextFloat, type Action, type Engine, type GameEvent, type GameState } from '../src/engine';
 
 export interface SimOptions {
   games: number;
@@ -33,6 +33,8 @@ function bankFlow(events: GameEvent[]): number {
     else if (e.type === 'auctionWon') flow -= e.price;
     else if (e.type === 'buildingBought') flow -= e.cost;
     else if (e.type === 'buildingSold') flow += e.refund;
+    else if (e.type === 'mortgaged') flow += e.amount;
+    else if (e.type === 'redeemed') flow -= e.cost;
   }
   return flow;
 }
@@ -77,6 +79,22 @@ export function checkInvariants(engine: Engine, before: GameState, after: GameSt
   return v;
 }
 
+// Random agent with fixed weights per action type, so games do things a real player would
+// (build, redeem) more often than things that stall them (mortgage, sell). Not an AI: S3 adds those.
+const WEIGHTS: Partial<Record<Action['type'], number>> = {
+  END_TURN: 5, BUILD: 4, REDEEM: 2, BUY: 3, SELL_BUILDING: 0.3, MORTGAGE: 0.3,
+};
+
+function pickWeighted(legal: Action[], r: number): Action {
+  const w = legal.map((a) => WEIGHTS[a.type] ?? 1);
+  let x = r * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < legal.length; i++) {
+    x -= w[i]!;
+    if (x < 0) return legal[i]!;
+  }
+  return legal[legal.length - 1]!;
+}
+
 export function simulate(engine: Engine, opts: SimOptions): SimReport {
   const report: SimReport = { games: 0, actions: 0, turns: 0, violations: [], events: {}, propertiesOwnedAtEnd: 0, playersBelowZeroAtEnd: 0, finalStates: [] };
   let agentRng = opts.seed ^ 0x5bd1e995;
@@ -89,9 +107,7 @@ export function simulate(engine: Engine, opts: SimOptions): SimReport {
       if (legal.length === 0) break;
       const [r, next] = nextFloat(agentRng);
       agentRng = next;
-      // Random agent. In MANAGE it ends the turn half the time, so it cannot loop build and sell forever.
-      const end = legal.find((x) => x.type === 'END_TURN');
-      const action = end && r < 0.5 ? end : legal[Math.floor(r * legal.length)]!;
+      const action = pickWeighted(legal, r);
       const result = engine.step(state, action);
       for (const e of result.events) report.events[e.type] = (report.events[e.type] ?? 0) + 1;
       const v = checkInvariants(engine, state, result.state, result.events);
