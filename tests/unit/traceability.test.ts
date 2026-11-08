@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Plan 5: every FR in section 2.1 maps to at least one test. Requirements join this list as
-// their sprint lands; the full list is required at gate G5.
-const REQUIRED_SO_FAR = ['FR-01', 'FR-02', 'FR-03', 'FR-04', 'FR-05', 'FR-06', 'FR-07', 'FR-08', 'FR-09', 'FR-10', 'FR-11', 'FR-12', 'FR-13', 'FR-15', 'FR-16', 'FR-17'];
+// Plan 5: every FR in section 2.1 maps to at least one test; a missing mapping blocks gate G5.
+// FR-18 is dropped and FR-20 is Won't for release 1 (R-62), so they have nothing to test.
+const NOT_IN_RELEASE_1 = ['FR-18', 'FR-20'];
+const ALL = Array.from({ length: 20 }, (_, i) => `FR-${String(i + 1).padStart(2, '0')}`);
+const REQUIRED = ALL.filter((id) => !NOT_IN_RELEASE_1.includes(id));
 
 const ROOT = join(import.meta.dirname, '..', '..');
 function testFiles(dir: string, out: string[] = []): string[] {
@@ -17,9 +19,9 @@ function testFiles(dir: string, out: string[] = []): string[] {
 }
 
 describe('requirement traceability (plan 5)', () => {
-  it('every requirement delivered so far is named by at least one test', () => {
+  it('every release 1 requirement is named by at least one test (gate G5)', () => {
     const text = [...testFiles(join(ROOT, 'tests')), ...testFiles(join(ROOT, 'sim'))].map((f) => readFileSync(f, 'utf8')).join('\n');
-    const missing = REQUIRED_SO_FAR.filter((id) => !new RegExp(`\\b(it|test)\\([^)]*${id}`).test(text));
+    const missing = REQUIRED.filter((id) => !new RegExp(`\\b(it|test)\\([^)]*${id}`).test(text));
     expect(missing).toEqual([]);
   });
 });
