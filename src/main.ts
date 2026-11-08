@@ -70,4 +70,10 @@ async function main(): Promise<void> {
   if (test) (window as unknown as { __babsha: unknown }).__babsha = { app, engine, ai, profiles: profilesDoc.profiles };
 }
 
+// Offline play after the first visit (plan 2.2, D-94). Only in the production build, and only
+// where the browser allows it (HTTPS or localhost).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => { /* offline play is optional */ }); });
+}
+
 void main();
