@@ -1,28 +1,39 @@
 import { expect, test } from '@playwright/test';
+import { runSteps } from './helpers';
 
-// S5 visual checks: the sample position at iPhone 13 Pro size (390 by 844 points, 3x pixels),
+// S5 and S6 visual checks: the sample position at iPhone 13 Pro size (390 by 844 points, 3x pixels),
 // both camera presets and both languages, saved for comparison with docs/style-guide.md.
 test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
 
-for (const camera of ['tabletop', 'tilted45', 'isometric']) {
+for (const camera of ['tabletop']) {
   for (const lang of ['en', 'bn']) {
-    test(`S5 showcase: ${camera} camera, ${lang}`, async ({ page }) => {
+    test(`S6 showcase: ${camera} camera, ${lang}`, async ({ page }) => {
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(e.message));
       await page.goto(`/?showcase=1&camera=${camera}&lang=${lang}`);
       await page.waitForTimeout(800);
-      await page.screenshot({ path: `docs/screenshots/s5-${camera}-${lang}.png` });
+      await page.screenshot({ path: `docs/screenshots/s6-board-${lang}.png` });
       expect(errors).toEqual([]);
     });
   }
 }
 
-test('S5 game screen in the new style, both languages', async ({ page }) => {
+test('S6 game screen, both languages', async ({ page }) => {
   await page.goto('/?test=1&lang=en');
   await page.getByTestId('count-4').click();
   await page.getByTestId('start').click();
   await page.getByTestId('handoff').getByRole('button').click();
-  await page.screenshot({ path: 'docs/screenshots/s5-game-en.png' });
+  await page.screenshot({ path: 'docs/screenshots/s6-game-en.png' });
   await page.getByTestId('lang').click();
-  await page.screenshot({ path: 'docs/screenshots/s5-game-bn.png' });
+  await page.screenshot({ path: 'docs/screenshots/s6-game-bn.png' });
+});
+
+test('S6 card artwork', async ({ page }) => {
+  await page.goto('/?test=1&lang=en');
+  await page.getByTestId('start').click();
+  for (let i = 0; i < 2000 && !(await page.getByTestId('card').isVisible()); i++) await runSteps(page, 1);
+  await expect(page.getByTestId('card')).toBeVisible();
+  await page.screenshot({ path: 'docs/screenshots/s6-card-en.png' });
+  await page.getByTestId('lang').click();
+  await page.screenshot({ path: 'docs/screenshots/s6-card-bn.png' });
 });

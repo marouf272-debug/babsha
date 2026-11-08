@@ -84,6 +84,11 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-76 | 2026-11-08 | S5 camera choice: tabletop (58 degrees, board square to the screen). | Owner | Plan 3.6 and 4.3 S5 check: owner picks the preset. tilted45 and isometric stay in data/scene.json for reference only. |
 | D-77 | 2026-11-08 | Each property's set color band sits on the tile edge facing the board centre: top edge for the bottom row, bottom edge for the top row, right edge for the left column, left edge for the right column. Houses and hotels stand on the band. Tile text stays upright (D-67) and keeps clear of the owner band on the outer edge. | Owner | Owner feedback on the S5 screenshots; matches a printed board. |
 | D-78 | 2026-11-08 | S5 gate passed: the owner confirmed the style and measured 40 or more frames per second on the iPhone 13 Pro with `?bench=1&camera=tabletop`. | Owner | Plan 4.3 S5 checks all met: camera chosen (D-76), style confirmed, frame rate on target. The mid-range Android check (D-69) is still due before S7. |
+| D-79 | 2026-11-08 | Tile anchors for all 40 tiles  based on the plan 3.9 art hooks. Religious buildings, stadiums and party symbols are left out (plan 3.8). | Builder | Plan 3.9 says the hooks are suggestions to check against the owner's knowledge; the owner reviews them in S6. |
+| D-80 | 2026-11-08 | Interface and card icons come from lucide (npm `lucide`, ISC), recorded in docs/LICENSES.md. | Builder | Org rule: icons from lucide.dev only. |
+| D-81 | 2026-11-08 | Static scenery is merged into a few meshes, labels and signs use atlases, houses and owner bands are instanced. 17 draw calls for the dressed board. | Builder | Style guide 9: draw calls were the S5 constraint. |
+| D-82 | 2026-11-08 | Tap to build: Build, Sell, Mortgage and Redeem highlight usable tiles and a tap acts there; the list stays as a fallback in a shorter sheet. | Builder | D-71 reference principle. |
+| D-83 | 2026-11-08 | Motion respects the phone's reduced-motion setting; sound has a toggle remembered per device and is off in test mode. | Builder | game-feel skill: accessibility option for motion; plan 2.2 accessibility. |
 
 ## Open questions
 

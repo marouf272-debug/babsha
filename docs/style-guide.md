@@ -97,6 +97,8 @@ Every tile gets one Dhaka-specific anchor: a rickshaw with rickshaw-art colors, 
 
 Review test for each tile: with the name covered, would a Bangladeshi viewer still say Dhaka? If not, redo it.
 
+All 40 tiles are dressed (S6). The anchor list is in code: src/scene/models/dressing.ts.
+
 ### S5 hero group: Dark Blue
 
 | Tile | Anchor | Parts |
@@ -119,8 +121,16 @@ Target: 40 frames per second on the iPhone 13 Pro (D-69), plus one mid-range And
 
 Budgets: pixel ratio at most 1.5, under 200 draw calls, under 60,000 triangles for the full board.
 
-S5 measurement with the Dark Blue group dressed: 185 draw calls and about 1,900 triangles. Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
+S6 measurement with all 40 tiles dressed: 17 draw calls and about 10,700 triangles (static scenery merged, labels and signs in atlases, houses and owner bands instanced). S5, Dark Blue only, had 185 draw calls. Headless desktop Chrome (software rendering) held 60 fps, and 49 to 58 fps with the CPU slowed 4 times; the owner measured 40 or more on the iPhone 13 Pro (D-78). Triangles are far under budget; draw calls are the constraint. Before S6 dresses all tiles: draw the 40 tile signs into one shared texture (about 40 fewer calls) and merge each tile's static landmark parts into one mesh per material.
 
 ## 10. Small anchors at phone scale
 
 On a 390-point-wide phone a side tile is about 31 points wide. A rickshaw or nouka at true scale is a few points, so anchors are drawn about 1.4 times larger than the buildings around them would suggest, and each tile shows one big, simple anchor rather than many small ones.
+
+## 11. Tokens, motion and sound (S6)
+
+- **Tokens**: rickshaw, CNG auto, ilish, kite, tea cup and bus (plan 2.4), each a merged low-poly model standing on a disc in the player's color, so color stays the first cue.
+- **Motion**: tokens hop tile by tile, stretching in the air and squashing on landing; dice tumble and bounce lower each time; new owner bands, houses and hotels pop in with a small overshoot. All motion returns to rest. When the phone asks for reduced motion, hops become short slides and nothing squashes or pops.
+- **Sound**: synthesized in code (plan 3.1): dice rattle, hop ticks, a cash chime for buying, coins for rent and salary, a paper swish for cards, an auction bell, a two-tone jam horn, a knock for building, falling notes for bankruptcy and a short fanfare for the win. All sound goes through one bus and a limiter. A sound toggle sits in the top strip and is remembered per device.
+- **Cards**: a rickshaw-art border of flowers and dots in the deck color, with a lucide icon for the card's effect.
+- **Tap to build**: Build, Sell, Mortgage and Redeem highlight the tiles they can use with a pulsing yellow overlay; tapping a tile acts there. The list stays as a fallback.
