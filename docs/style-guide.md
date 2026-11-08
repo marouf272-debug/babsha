@@ -1,6 +1,6 @@
 # Babsha style guide
 
-Status: S5 draft for owner confirmation. Sources: plan 3.6 to 3.10, the owner's references in docs/reference (D-71), and the owner's choice of the tilted 3D city (D-70). All art is made in code (CLAUDE.md): low-poly geometry, canvas textures, no image files, no image generation.
+Status: S5. Camera chosen (D-76); set bands per owner feedback (D-77); style awaiting final owner confirmation. Sources: plan 3.6 to 3.10, the owner's references in docs/reference (D-71), and the owner's choice of the tilted 3D city (D-70). All art is made in code (CLAUDE.md): low-poly geometry, canvas textures, no image files, no image generation.
 
 ## 1. What the look is
 
@@ -68,10 +68,11 @@ Avoid: saffron-heavy schemes and orange-white-green tricolor groupings (plan 3.7
 
 World units: one side tile is 1 wide and 1.6 deep, corners 1.6 square, board 12.2 square.
 
-- **Tile face**: paper with a 2 px paperEdge border drawn in the texture. Set color strip with its symbol. Name and price in ink.
-- **Tile layout when dressed**: the outer 45 percent of the tile depth carries the color strip, name and price; the rest carries the landmark, and a 0.18-unit lane at the inner edge (by the board centre) holds houses and hotels. Text never sits under a building or a house.
+- **Tile face**: paper with a 2 px paperEdge border drawn in the texture. Name and price in ink, upright for the fixed camera (D-67), kept clear of the owner band on the outer edge.
+- **Set color band**: on the edge facing the board centre, with the set symbol (D-77): top edge on the bottom row, bottom edge on the top row, right edge on the left column, left edge on the right column. 0.3 units deep.
+- **Tile layout when dressed**: the outer 45 percent of the tile depth carries the name and price; the landmark fills the middle; the color band at the inner edge holds houses and hotels. Text never sits under a building or a house.
 - **Buildings**: footprint at most 0.85 by 0.85 units, height at most 1.3 units, so a building hides at most part of the tile behind it (plan risk R2). Ownership is a flat band on the outer edge, readable even when a building overlaps.
-- **Houses and hotels**: white houses with a red roof, 0.15 wide; a terracotta hotel block. On a dressed tile they stand in the house lane at the inner edge.
+- **Houses and hotels**: white houses with a red roof, 0.15 wide; a terracotta hotel block. They stand on the set color band, on every property tile.
 - **Tokens**: about 0.4 units tall, footprint up to 0.45.
 - **Board base**: boardGreen with a boardGreenDark rim.
 
@@ -105,7 +106,7 @@ Review test for each tile: with the name covered, would a Bangladeshi viewer sti
 
 ## 8. Camera
 
-Three presets are compared on the phone in S5 (plan 3.6; the middle one was added so the owner can see the trade-off): tabletop (58 degrees), tilted45 (45 degrees) and the isometric diamond. Values live in data/scene.json; open any page with `?camera=tabletop`, `?camera=tilted45` or `?camera=isometric`. No pan or zoom.
+**Chosen: tabletop (D-76).** Three presets were compared in S5 (plan 3.6; the middle one was added so the owner could see the trade-off): tabletop (58 degrees), tilted45 (45 degrees) and the isometric diamond. Values live in data/scene.json; open any page with `?camera=tabletop`, `?camera=tilted45` or `?camera=isometric`. No pan or zoom.
 
 What the S5 screenshots show (docs/screenshots/s5-*.png, iPhone 13 Pro size):
 

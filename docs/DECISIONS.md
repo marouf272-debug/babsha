@@ -81,6 +81,8 @@ Two lists: decisions taken (with who decided and why), and open questions waitin
 | D-73 | 2026-11-08 | S5 adds a third camera preset, tilted45 (45 degrees), between tabletop and isometric, so the owner can judge readability against how 3D the city looks. | Builder | Plan 3.6 asks for at least two presets. |
 | D-74 | 2026-11-08 | Building signs are always Bangla; tile labels follow the language toggle. | Builder | Plan 3.7 (Bangla script on all signage) and FR-15 (tile names in both languages). |
 | D-75 | 2026-11-08 | Small Dhaka anchors (rickshaw, nouka) are drawn about 1.4 times larger than true scale, and houses sit in a lane at the tile's inner edge, so nothing covers tile text. | Builder | S5 screenshots showed houses over names and anchors too small to read at phone scale. |
+| D-76 | 2026-11-08 | S5 camera choice: tabletop (58 degrees, board square to the screen). | Owner | Plan 3.6 and 4.3 S5 check: owner picks the preset. tilted45 and isometric stay in data/scene.json for reference only. |
+| D-77 | 2026-11-08 | Each property's set color band sits on the tile edge facing the board centre: top edge for the bottom row, bottom edge for the top row, right edge for the left column, left edge for the right column. Houses and hotels stand on the band. Tile text stays upright (D-67) and keeps clear of the owner band on the outer edge. | Owner | Owner feedback on the S5 screenshots; matches a printed board. |
 
 ## Open questions
 

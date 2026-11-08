@@ -175,27 +175,43 @@ export class BoardScene {
     g.lineWidth = 4;
     g.strokeRect(2, 2, c.width - 4, c.height - 4);
     // Region for text, in canvas pixels. Canvas top is the far side (away from the camera).
+    // Text region, in canvas pixels. Canvas top is the far side (away from the camera).
     let rx = 0, ry = 0, rw = c.width, rh = c.height;
-    if (this.dressed.has(t.id)) {
-      const share = this.cfg.dressing.textShare;
-      const ix = p.inward.x, iz = p.inward.y;
-      if (iz < -0.5) { rh = c.height * share; ry = c.height - rh; } // bottom row: outer is the bottom
-      else if (iz > 0.5) { rh = c.height * share; } // top row: outer is the top
-      else if (ix > 0.5) { rw = c.width * share; } // left column: outer is the left
-      else { rw = c.width * share; rx = c.width - rw; } // right column: outer is the right
-    }
-    let top = ry + 8;
+    const ix = p.inward.x, iz = p.inward.y;
     if (t.group) {
-      const bandH = Math.min(rh * 0.26, 46);
+      // The set color band sits on the edge facing the board centre (D-77): top for the bottom
+      // row, bottom for the top row, right for the left column, left for the right column.
+      const band = Math.round(this.cfg.dressing.houseLane * scale);
+      let bx = 0, by = 0, bw = c.width, bh = c.height;
+      if (iz < -0.5) { bh = band; ry = band; rh = c.height - band; }
+      else if (iz > 0.5) { by = c.height - band; bh = band; rh = c.height - band; }
+      else if (ix > 0.5) { bx = c.width - band; bw = band; rw = c.width - band; }
+      else { bw = band; rx = band; rw = c.width - band; }
       g.fillStyle = colors.groups[t.group] ?? '#888';
-      g.fillRect(rx + 4, ry + 4, rw - 8, bandH);
+      g.fillRect(bx + 4, by + 4, bw - 8, bh - 8);
       g.fillStyle = '#ffffff';
-      g.font = `700 ${Math.round(bandH * 0.62)}px ${txt.font}`;
+      g.font = `700 ${Math.round(Math.min(bw, bh) * 0.5)}px ${txt.font}`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText(this.cfg.groupSymbols[t.group] ?? '', rx + rw / 2, ry + 4 + bandH / 2);
-      top = ry + bandH + 10;
+      g.fillText(this.cfg.groupSymbols[t.group] ?? '', bx + bw / 2, by + bh / 2);
     }
+    if (this.dressed.has(t.id)) {
+      // On a dressed tile the text keeps to the outer part; the landmark fills the middle.
+      const share = this.cfg.dressing.textShare;
+      if (iz < -0.5) { rh = c.height * share; ry = c.height - rh; }
+      else if (iz > 0.5) { rh = c.height * share; ry = 0; }
+      else if (ix > 0.5) { rw = c.width * share; rx = 0; }
+      else { rw = c.width * share; rx = c.width - rw; }
+    }
+    if (t.type === 'property' || t.type === 'hub' || t.type === 'utility') {
+      // Keep text clear of the owner band on the outer edge (plan 3.6).
+      const pad = Math.round(0.17 * scale);
+      if (iz < -0.5) rh -= pad;
+      else if (iz > 0.5) { ry += pad; rh -= pad; }
+      else if (ix > 0.5) { rx += pad; rw -= pad; }
+      else rw -= pad;
+    }
+    const top = ry + 8;
     g.fillStyle = colors.tileText;
     g.textAlign = 'center';
     g.textBaseline = 'top';
@@ -333,7 +349,7 @@ export class BoardScene {
     const count = hotel ? 1 : houses;
     // On a dressed tile, houses stand in a row between the text and the landmark (style guide 4).
     const lane = this.cfg.dressing.houseLane;
-    const b = this.dressed.has(t.id) ? f.depth / 2 - lane / 2 : f.depth / 2 - 0.25;
+    const b = f.depth / 2 - lane / 2; // on the color band at the inner edge (D-77)
     for (let k = 0; k < count; k++) {
       const a = hotel ? 0 : (k - (count - 1) / 2) * 0.21;
       if (hotel) {

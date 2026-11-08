@@ -30,8 +30,8 @@ export interface SceneConfig {
   };
   lighting: { skyColor: string; groundColor: string; hemiIntensity: number; sunColor: string; sunIntensity: number; sunPosition: [number, number, number]; shadowOpacity: number };
   // Share of a dressed tile's depth kept for its text (outer side); buildings use the rest.
-  // houseLane: depth at the tile's inner edge (by the board centre) where houses stand, so they
-  // never cover text or the landmark.
+  // houseLane: depth of the color band at a property's inner edge (facing the board centre).
+  // Houses and hotels stand on it, so they never cover text or the landmark.
   dressing: { textShare: number; maxHeight: number; houseLane: number };
   groupSymbols: Record<string, string>;
 }
