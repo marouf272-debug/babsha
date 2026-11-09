@@ -1,0 +1,58 @@
+# Release (plan phase 6, D-104): push a tag v<version> that matches package.json. The full test
+# suite runs first; then the built site is kept as a zip on a GitHub Release (so any release can
+# be put back later, see rollback.yml) and published to GitHub Pages. See docs/RELEASE.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: The tag must match package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          test "$GITHUB_REF_NAME" = "v$VERSION" || { echo "Tag $GITHUB_REF_NAME does not match package.json version $VERSION"; exit 1; }
+      - run: npm ci
+      - run: npm run build
+      - name: Keep this build on a GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd dist && zip -qr "../babsha-$GITHUB_REF_NAME.zip" .)
+          PRE=""
+          case "$GITHUB_REF_NAME" in *-*) PRE="--prerelease";; esac
+          gh release create "$GITHUB_REF_NAME" "babsha-$GITHUB_REF_NAME.zip" --title "$GITHUB_REF_NAME" --notes "Built from $GITHUB_SHA. To put this build back live, run the Rollback workflow with tag $GITHUB_REF_NAME." $PRE
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1
