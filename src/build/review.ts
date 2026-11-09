@@ -3,7 +3,9 @@
 // data/bn-review.json. Pure functions; scripts/bangla-review.ts does the file reading and writing.
 
 export type Strings = Record<string, string>;
-export interface Pending { status: string; keys: Record<string, string> }
+// keys: strings still waiting for a native reader. approved: the Bangla text a reader approved, per
+// key, so a string that changes after approval shows up as unreviewed again (D-99).
+export interface Pending { status: string; keys: Record<string, string>; approved?: Record<string, string> }
 export interface ReviewRow { key: string; english: string; bangla: string; ok: string; correction: string; note: string }
 
 const COLUMNS: Array<keyof ReviewRow> = ['key', 'english', 'bangla', 'ok', 'correction', 'note'];
@@ -55,6 +57,7 @@ export function applyReview(rows: ReviewRow[], en: Strings, bn: Strings, pending
   const errors: string[] = [];
   const nextBn = { ...bn };
   const nextKeys = { ...pending.keys };
+  const nextApproved = { ...pending.approved };
   let approved = 0;
   let corrected = 0;
   for (const r of rows) {
@@ -67,8 +70,9 @@ export function applyReview(rows: ReviewRow[], en: Strings, bn: Strings, pending
       corrected++;
     } else approved++;
     delete nextKeys[r.key];
+    nextApproved[r.key] = nextBn[r.key]!;
   }
   // All or nothing: one bad row leaves both files as they were.
   if (errors.length) return { errors, bn, pending, summary: { approved: 0, corrected: 0, waiting: Object.keys(pending.keys).length } };
-  return { errors, bn: nextBn, pending: { ...pending, keys: nextKeys }, summary: { approved, corrected, waiting: Object.keys(nextKeys).length } };
+  return { errors, bn: nextBn, pending: { ...pending, keys: nextKeys, approved: nextApproved }, summary: { approved, corrected, waiting: Object.keys(nextKeys).length } };
 }

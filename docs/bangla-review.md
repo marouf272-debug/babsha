@@ -1,5 +1,7 @@
 # Bangla review: instructions for the reviewer
 
+Status: done. The owner reviewed every string on 2026-11-09 and approved all of them (D-99). The sheet below is only needed again for new or changed strings.
+
 Thank you for checking the Bangla. The sheet `docs/bangla-review.csv` lists every string in the game that still needs a native reader: tile names, card text, buttons, messages and the game log. Open it in Google Sheets, Excel or Numbers.
 
 ## Columns

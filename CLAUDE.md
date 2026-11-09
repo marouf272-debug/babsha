@@ -27,7 +27,7 @@ Babsha (working title) is a Dhaka-themed property trading board game for the bro
 
 - No visible text in code. Every visible string has a key in both data/en.json and data/bn.json. The build fails if a key is missing from either.
 - Bangla on tile signs is drawn to canvas textures after the font has loaded. Interface text is HTML and CSS.
-- Every new Bangla string is added to data/bn-review.json as "needs native review".
+- Every new or changed Bangla string is added to data/bn-review.json under keys as "needs native review" (D-99).
 - No em dashes anywhere: code comments, documents, interface strings, card text, commit messages. Use commas, colons or full stops.
 
 ## Art

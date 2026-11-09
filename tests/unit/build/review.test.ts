@@ -28,6 +28,7 @@ describe('Bangla review sheet (plan 5 Bangla review, FR-15, D-95)', () => {
     expect(r.bn['hud.turn']).toBe('{name}র পালা');
     expect(r.bn['setup.start']).toBe('খেলা শুরু');
     expect(Object.keys(r.pending.keys)).toEqual(['card.lucky_01']);
+    expect(r.pending.approved).toEqual({ 'setup.start': 'খেলা শুরু', 'hud.turn': '{name}র পালা' });
     expect(r.summary).toEqual({ approved: 1, corrected: 1, waiting: 1 });
   });
 

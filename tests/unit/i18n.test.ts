@@ -30,8 +30,11 @@ describe('language files (FR-15, plan 3.3)', () => {
     }
   });
 
-  it('every Bangla string is tracked as needing native review until approved', () => {
-    for (const k of Object.keys(bn)) expect(review.keys, k).toHaveProperty([k]);
-    for (const k of Object.keys(review.keys)) expect(bn, `stale review key ${k}`).toHaveProperty([k]);
+  it('FR-15, D-99: every Bangla string is either waiting for native review or approved exactly as it reads now', () => {
+    const approved: Record<string, string> = review.approved;
+    const bnStrings: Record<string, string> = bn;
+    const unreviewed = Object.keys(bnStrings).filter((k) => !(k in review.keys) && approved[k] !== bnStrings[k]);
+    expect(unreviewed).toEqual([]);
+    for (const k of [...Object.keys(review.keys), ...Object.keys(approved)]) expect(bn, `stale review key ${k}`).toHaveProperty([k]);
   });
 });
