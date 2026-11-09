@@ -1,14 +1,13 @@
-# Rollback (plan phase 6, D-104): puts the exact build of an earlier release back live, from the
-# zip kept on its GitHub Release. Nothing is rebuilt. Run it from the Actions tab or with
-#   gh workflow run rollback.yml -f tag=v1.0.0
+# Rollback (plan phase 6, D-104, D-105): puts the exact build of an earlier release back live,
+# from the zip kept on its GitHub Release. Nothing is rebuilt. Run it ON the release tag:
+#   gh workflow run rollback.yml --ref v1.0.0
+# It must run on the tag because GitHub Pages names each deployment after the commit the workflow
+# runs on (actions/deploy-pages uses GITHUB_SHA). Run from main, it would carry the same name as
+# the live deployment and Pages would keep serving the live files (found in the S8 rehearsal).
 name: Rollback
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag to put back live, for example v1.0.0
-        required: true
 
 permissions:
   contents: read
@@ -26,8 +25,9 @@ jobs:
       - name: Fetch the kept build
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
         run: |
+          test "$GITHUB_REF_TYPE" = tag || { echo "Run this on a release tag: gh workflow run rollback.yml --ref v1.0.0"; exit 1; }
+          TAG="$GITHUB_REF_NAME"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "babsha-$TAG.zip"
           mkdir site && unzip -q "babsha-$TAG.zip" -d site
           grep -q "\"version\":\"${TAG#v}\"" site/version.json || { echo "site/version.json does not say ${TAG#v}"; exit 1; }
