@@ -2,8 +2,8 @@
 
 How a new version of Babsha goes live, how to put an older one back, and the checklist for each release (plan phase 6, D-101 to D-104).
 
-- Live link: https://marouf-glitch.github.io/babsha/
-- Code: https://github.com/marouf-glitch/babsha (public)
+- Live link: https://marouf272-debug.github.io/babsha/
+- Code: https://github.com/marouf272-debug/babsha (public)
 - Host: GitHub Pages, free plan. Soft limit 100 GB of traffic a month, far above what friends will use.
 
 ## Release a new version
@@ -18,7 +18,7 @@ How a new version of Babsha goes live, how to put an older one back, and the che
    ```
 
 4. The Release workflow runs the full test suite, builds the site, keeps the build as a zip on a GitHub Release and publishes it. It takes about 10 minutes. Follow it with `gh run watch` or on the Actions tab.
-5. Check it is live: `curl -s https://marouf-glitch.github.io/babsha/version.json` shows the new version (GitHub's cache can take up to 10 minutes). The setup screen shows it too.
+5. Check it is live: `curl -s https://marouf272-debug.github.io/babsha/version.json` shows the new version (GitHub's cache can take up to 10 minutes). The setup screen shows it too.
 
 If the tests fail, nothing is published. The site stays on the last good version.
 
