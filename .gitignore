@@ -4,3 +4,6 @@ test-results
 playwright-report
 .vite
 .DS_Store
+
+# Style references from another company's app: kept locally, never published (D-101)
+docs/reference/*.webp
