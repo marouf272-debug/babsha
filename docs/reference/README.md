@@ -24,3 +24,5 @@ Seven phone screenshots from the owner, all from one existing commercial board g
 - The flat top-down board view: the owner kept the tilted 3D Dhaka city from the plan (D-70).
 - Indian city names, rupee sign, and the app's specific art, icons and color scheme.
 - The advertising banner.
+
+The seven .webp files are kept on the owner's Mac only and are ignored by git, so they are never published (D-101).

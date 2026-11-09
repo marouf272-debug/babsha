@@ -1,5 +1,6 @@
 {
   "app.title": "Babsha",
+  "app.version": "Version {version}",
   "lang.en": "English",
   "lang.bn": "Bangla",
   "deck.lucky": "Lucky",

@@ -1,0 +1,15 @@
+{
+  "status": "Install settings for the home screen app (plan phase 6, D-102). Colors are style guide tokens: boardGreenDark and the page background.",
+  "install": {
+    "themeColor": "#094C33",
+    "backgroundColor": "#F5EEDF",
+    "orientation": "portrait"
+  },
+  "icon": {
+    "background": "#0E6B47",
+    "disc": "#E0262F",
+    "ring": "#F7C631",
+    "dots": ["#EC3E8C", "#12A5B5", "#F7C631", "#FBF4E4"],
+    "letter": "#FBF4E4"
+  }
+}

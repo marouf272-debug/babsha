@@ -146,6 +146,8 @@ export class App {
       h('div', { class: 'field-label' }, t('setup.timer')),
       timer,
       h('button', { class: 'primary big', 'data-testid': 'start', onclick: () => this.start() }, t('setup.start')),
+      // D-103: the release version, so a player can say which build they have.
+      h('p', { class: 'version', 'data-testid': 'version' }, t('app.version', { version: String(import.meta.env['VITE_APP_VERSION'] ?? 'dev') })),
     ));
     document.title = t('app.title');
   }
