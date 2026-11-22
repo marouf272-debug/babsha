@@ -12,7 +12,7 @@ test.describe('release build (plan phase 6)', () => {
     const res = await request.get(`/${href}`);
     expect(res.ok()).toBe(true);
     const manifest = await res.json() as { name: string; display: string; icons: Array<{ src: string; sizes: string }> };
-    expect(manifest.name).toBe('Babsha');
+    expect(manifest.name).toBe('Dhaka Dice');
     expect(manifest.display).toBe('standalone');
     const apple = await page.locator('link[rel="apple-touch-icon"]').getAttribute('href');
     for (const src of [...manifest.icons.map((i) => i.src), apple!]) {

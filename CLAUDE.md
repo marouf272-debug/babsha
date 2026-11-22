@@ -1,6 +1,6 @@
-# CLAUDE.md: working agreement for Babsha
+# CLAUDE.md: working agreement for Dhaka Dice
 
-Babsha (working title) is a Dhaka-themed property trading board game for the browser, phone portrait first. Personal project, shared with friends by link.
+Dhaka Dice (formerly Babsha, renamed in D-109) is a Dhaka-themed property trading board game for the browser, phone portrait first. Personal project, shared with friends by link.
 
 ## Sources of truth
 
@@ -36,6 +36,7 @@ Babsha (working title) is a Dhaka-themed property trading board game for the bro
 - Sprints S0 to S4 use flat greybox colors only. Do not invent a visual style.
 - Before S5 the owner sends style screenshots, saved in docs/reference. S5 writes docs/style-guide.md and checks each model against it with Playwright screenshots.
 - Be honest about limits: code-made art gives a stylized low-poly or flat-shaded look, not hand-painted illustration.
+- Keep internal names as they are: the babsha.* storage keys, the babsha- cache prefix and the /babsha/ link hold saved games and installed copies (D-109).
 - Keep the India look out: Bangla script on all signage, palette from Bangladesh and rickshaw art, no domes or minarets as filler, one Dhaka-specific anchor per tile.
 
 ## Process

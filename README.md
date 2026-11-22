@@ -1,4 +1,6 @@
-# Babsha
+# Dhaka Dice
+
+Formerly Babsha. The link and the internal storage keys keep the old name so saved games and installed copies keep working (D-109).
 
 A Dhaka-themed property trading board game for the phone browser. Pass and play for 2 to 6 players, or play against the computer. English and Bangla. Works offline after the first visit and installs to the home screen.
 
