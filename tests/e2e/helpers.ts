@@ -134,3 +134,10 @@ export async function runSteps(page: Page, max: number): Promise<{ status: 'over
     return { status: 'more' as const, steps: limit };
   }, max);
 }
+
+// Night Map (D-113): on a phone, language, sound, log and new game sit in the Menu pop-up, and a
+// big pop-up can cover the Menu button, so the clicks are sent straight to the buttons.
+export async function menuClick(page: Page, testId: string): Promise<void> {
+  if (!(await visible(page, testId))) await page.getByTestId('menu').dispatchEvent('click');
+  await page.getByTestId(testId).dispatchEvent('click');
+}

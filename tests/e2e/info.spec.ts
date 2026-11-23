@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { runSteps, startGame } from './helpers';
+import { menuClick, runSteps, startGame } from './helpers';
 
 type Hook = { __babsha: { app: { tapTargetsForTest(): Array<{ id: string; x: number; y: number }>; housesForTest(id: string): number } } };
 
@@ -36,7 +36,7 @@ test.describe('S6 owner feedback: details, log, trade colors, tools any time', (
   test('D-89: the full log opens for everyone, names players, and follows the language toggle', async ({ page }) => {
     await startGame(page, ['human', 'easy']);
     await runSteps(page, 60);
-    await page.getByTestId('open-log').click();
+    await menuClick(page, 'open-log');
     const log = page.getByTestId('info-log');
     await expect(log).toBeVisible();
     const lines = await log.locator('li').allInnerTexts();
@@ -46,7 +46,7 @@ test.describe('S6 owner feedback: details, log, trade colors, tools any time', (
     // Card text speaks to whoever drew it, so only the log's own wording is checked for "you".
     expect(lines.filter((l) => !l.includes(' card: ') && /\byou\b/i.test(l))).toEqual([]);
     await page.screenshot({ path: 'docs/screenshots/s6-log-en.png' });
-    await page.getByTestId('lang').click();
+    await menuClick(page, 'lang');
     const bn = await log.locator('li').allInnerTexts();
     expect(bn.length).toBeGreaterThanOrEqual(lines.length);
     expect(bn[bn.length - 1]).not.toBe(lines[lines.length - 1]);

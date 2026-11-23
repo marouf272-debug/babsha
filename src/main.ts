@@ -38,8 +38,8 @@ async function main(): Promise<void> {
   // Camera preset from the address, for comparing presets on the phone (plan 3.6): ?camera=isometric
   const camera = params.get('camera');
   if (camera && camera in sceneConfig.camera.presets) sceneConfig.camera.active = camera;
-  // Website look (Night Map), preview behind ?look=nightmap until the owner approves it.
-  const look = params.get('look');
+  // Website look (Night Map) is the default since the owner approved it (D-113); ?look=classic shows the old look.
+  const look = params.get('look') ?? 'nightmap';
   const over = look ? sceneConfig.looks?.[look] : undefined;
   if (look && over) {
     Object.assign(sceneConfig.colors, over.colors);

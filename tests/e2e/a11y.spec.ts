@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { runSteps } from './helpers';
+import { menuClick, runSteps } from './helpers';
 
 // Plan 2.2 and phase 5 accessibility: contrast on every text and background pair, tap targets
 // of at least 44 by 44 points, on the narrowest phone in scope (375 points wide), both languages.
@@ -104,7 +104,7 @@ for (const lang of ['en', 'bn'] as const) {
     await page.locator('.player').first().click();
     problems.push(...await audit(page, 'player details'));
     await page.getByTestId('info-close').click();
-    await page.getByTestId('open-log').click();
+    await menuClick(page, 'open-log');
     problems.push(...await audit(page, 'log'));
     await page.getByTestId('info-close').click();
     await page.reload();

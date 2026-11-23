@@ -276,15 +276,15 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 :root[data-look="nightmap"] .band::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 7px; background: var(--lotus); }
 :root[data-look="nightmap"] .band.manage,
 :root[data-look="nightmap"] .band.plain,
-:root[data-look="nightmap"] .band.debt { background: linear-gradient(#FF8A1E, #E0262F); }
-:root[data-look="nightmap"] .band.auction { color: var(--night); text-shadow: none; }
+:root[data-look="nightmap"] .band.debt { background: linear-gradient(#B81F2A, #8E1520); }
+:root[data-look="nightmap"] .band.auction { color: #FFFFFF; }
 :root[data-look="nightmap"] .sheet.compact .band { font-size: 1.1rem; padding: 8px 10px 7px; margin-bottom: 10px; }
 :root[data-look="nightmap"] .card-box .band { border-radius: 50% 50% 0 0 / 26px 26px 0 0; }
 :root[data-look="nightmap"] .overlay { background: rgba(11,10,30,0.42); }
 :root[data-look="nightmap"] .deed .note { padding: 0 12px 8px; }
 :root[data-look="nightmap"] .deed { box-shadow: inset 0 0 0 2px var(--paperEdge), 0 3px 0 rgba(11,10,30,0.2); }
 :root[data-look="nightmap"] .note { color: #6A4B2E; }
-:root[data-look="nightmap"] button[data-action*='"type":"BUY"'] { background: #1F8A4C; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); font-size: 1.05rem; }
+:root[data-look="nightmap"] button[data-action*='"type":"BUY"'] { background: #1B7A43; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); font-size: 1.05rem; }
 :root[data-look="nightmap"] [data-action*='"type":"DECLINE"'],
 :root[data-look="nightmap"] [data-testid$="-close"],
 :root[data-look="nightmap"] [data-testid="trade-cancel"] { background: #D3202A; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); }
@@ -301,6 +301,9 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 :root[data-look="nightmap"] .player.active .cash { color: #1F7A3A; }
 :root[data-look="nightmap"] .player.active .flags { color: var(--muted); }
 :root[data-look="nightmap"] .player.out { background: #241A4F; color: rgba(255,241,220,0.6); box-shadow: none; }
+:root[data-look="nightmap"] .player.out .flags,
+:root[data-look="nightmap"] .player.out .cash { color: #CFC6E0; }
+:root[data-look="nightmap"] .setup .continue h2 { color: var(--night); }
 :root[data-look="nightmap"] .die { width: 40px; height: 40px; border-radius: 9px; padding: 6px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15), 0 3px 0 var(--night); }
 :root[data-look="nightmap"] .die i { width: 6px; height: 6px; background: #E0262F; }
 
@@ -336,8 +339,9 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
   :root[data-look="nightmap"] .log { grid-area: log; background: transparent; color: rgba(255,241,220,0.8); text-align: center; padding: 4px 12px 10px; }
   :root[data-look="nightmap"] .board-wrap .sheet { width: min(340px, 86vw); }
   /* Big pop-ups are taller than the board on a phone, so they centre on the screen instead. */
-  :root[data-look="nightmap"] .board-wrap .sheet:not(.compact),
-  :root[data-look="nightmap"] .overlay { position: fixed; z-index: 20; }
+  :root[data-look="nightmap"] .board-wrap .sheet:not(.compact) { position: fixed; z-index: 20; }
+  :root[data-look="nightmap"] .overlay { position: fixed; z-index: 20; pointer-events: none; }
+  :root[data-look="nightmap"] .overlay > * { pointer-events: auto; } /* taps outside the pop-up still reach Menu, as before */
   :root[data-look="nightmap"] .board-wrap .card-box { width: min(340px, 86%); }
   /* Menu: language, sound, log and new game in a small card over the bottom of the board. */
   :root[data-look="nightmap"] .menu-items { grid-area: board; align-self: end; justify-self: start; margin: 0 0 8px 8px; z-index: 12; display: none;

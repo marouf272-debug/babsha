@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { playOneStep, runSteps, startGame, visibleTexts } from './helpers';
+import { menuClick, playOneStep, runSteps, startGame, visibleTexts } from './helpers';
 
 test.describe('S4 interface on a phone', () => {
   test('FR-12: a full Pass & Play game for two humans completes through the interface', async ({ page }) => {
@@ -30,10 +30,10 @@ test.describe('S4 interface on a phone', () => {
   test('FR-15, FR-17: the language toggle changes every visible string, including the HUD, on setup and in game', async ({ page }) => {
     await page.goto('/?test=1&lang=en');
     const setupEn = await visibleTexts(page);
-    await page.getByTestId('lang').click();
+    await menuClick(page, 'lang');
     const setupBn = await visibleTexts(page);
     expect(setupBn.filter((x) => setupEn.includes(x))).toEqual([]);
-    await page.getByTestId('lang').click();
+    await menuClick(page, 'lang');
 
     await startGame(page, ['human', 'human', 'easy']);
     // Play until a deed sheet is open, so the board, player strip, log and a sheet are all on screen.
@@ -41,7 +41,7 @@ test.describe('S4 interface on a phone', () => {
     await expect(page.getByTestId('deed')).toBeVisible();
     const en = await visibleTexts(page);
     await page.screenshot({ path: 'docs/screenshots/s4-deed-en.png' });
-    await page.getByTestId('lang').click();
+    await menuClick(page, 'lang');
     const bn = await visibleTexts(page);
     await page.screenshot({ path: 'docs/screenshots/s4-deed-bn.png' });
     // Set symbols (♥, ★, ...) are language-neutral markers, so only strings with letters or digits count.

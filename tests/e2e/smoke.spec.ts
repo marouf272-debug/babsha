@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { menuClick } from './helpers';
 import en from '../../data/en.json' with { type: 'json' };
 
 test('S0 smoke: the built page loads and shows the title from en.json', async ({ page }) => {
@@ -15,7 +16,7 @@ test('D-97: many new games in a row each start a working board, with no errors',
   for (let i = 0; i < 12; i++) {
     await page.getByTestId('start').click();
     await expect(page.getByTestId('handoff')).toBeVisible();
-    await page.getByTestId('new-game').click();
+    await menuClick(page, 'new-game');
   }
   await page.getByTestId('start').click();
   await page.getByTestId('handoff').getByRole('button').click();

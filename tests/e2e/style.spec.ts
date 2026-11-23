@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { runSteps } from './helpers';
+import { menuClick, runSteps } from './helpers';
 
 // S5 and S6 visual checks: the sample position at iPhone 13 Pro size (390 by 844 points, 3x pixels),
 // both camera presets and both languages, saved for comparison with docs/style-guide.md.
@@ -24,7 +24,7 @@ test('S6 game screen, both languages', async ({ page }) => {
   await page.getByTestId('start').click();
   await page.getByTestId('handoff').getByRole('button').click();
   await page.screenshot({ path: 'docs/screenshots/s6-game-en.png' });
-  await page.getByTestId('lang').click();
+  await menuClick(page, 'lang');
   await page.screenshot({ path: 'docs/screenshots/s6-game-bn.png' });
 });
 
@@ -34,7 +34,7 @@ test('S6 card artwork', async ({ page }) => {
   for (let i = 0; i < 2000 && !(await page.getByTestId('card').isVisible()); i++) await runSteps(page, 1);
   await expect(page.getByTestId('card')).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/s6-card-en.png' });
-  await page.getByTestId('lang').click();
+  await menuClick(page, 'lang');
   await page.screenshot({ path: 'docs/screenshots/s6-card-bn.png' });
 });
 
