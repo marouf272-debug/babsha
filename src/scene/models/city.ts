@@ -1,5 +1,5 @@
 // Night Map look (website match, ?look=nightmap): a painted night map around the board, the
-// two corner scenes, a lotus emblem in the middle and a truck-art repaint for built landmarks.
+// two corner scenes, the card decks in the middle and a truck-art repaint for built landmarks.
 // The board itself stays clean (D-84): no ready-made buildings around it; buildings, and the
 // pink domed hotels, appear only when players build. Everything merges into a few meshes.
 
@@ -139,23 +139,25 @@ export function buildNightMap(kit: KitContext, half: number, corners: { cha?: Sp
     S.solid(new THREE.BoxGeometry(0.24, 0.12, cng ? 0.36 : 0.2), cng ? '#FFD66B' : '#E0262F', v(x, GROUND_Y + 0.26, z), rot);
   }
 
+  const inner = half - 1.6 - 0.7;
+  for (const [x, z] of [[inner, -inner], [-inner, inner], [inner - 0.5, -inner + 0.2], [-inner + 0.5, inner - 0.2]] as const) palm(S, x, z, 0.75, rnd, 0.23);
   if (corners.cha) chaAdda(S, sceneAt(corners.cha));
   if (corners.jam) goToJam(S, sceneAt(corners.jam), bulb);
 
   const group = S.build();
   if (glow.length) group.add(new THREE.Mesh(mergeGeometries(glow)!, new THREE.MeshBasicMaterial({ vertexColors: true })));
-  group.add(lotusEmblem(half));
   return group;
 }
 
-function palm(S: Scenery, x: number, z: number, h: number, rnd: () => number): void {
-  S.solid(new THREE.CylinderGeometry(0.05, 0.08, h, 5, 1, true), '#8A5A3A', new THREE.Vector3(x, GROUND_Y + h / 2, z));
+function palm(S: Scenery, x: number, z: number, h: number, rnd: () => number, lift = 0): void {
+  const base = GROUND_Y + lift;
+  S.solid(new THREE.CylinderGeometry(0.05, 0.08, h, 5, 1, true), '#8A5A3A', new THREE.Vector3(x, base + h / 2, z));
   for (let f = 0; f < 5; f++) {
     const l = new THREE.PlaneGeometry(0.7, 0.2).rotateX(-Math.PI / 2);
     l.translate(0.32, 0, 0);
     l.rotateZ(-0.45);
     l.rotateY((f / 5) * Math.PI * 2 + rnd());
-    S.solid(l, f % 2 ? '#19B3A6' : '#2E9E5B', new THREE.Vector3(x, GROUND_Y + h, z));
+    S.solid(l, f % 2 ? '#19B3A6' : '#2E9E5B', new THREE.Vector3(x, base + h, z));
   }
 }
 
@@ -228,39 +230,71 @@ function goToJam(S: Scenery, at: { x: number; z: number }, bulb: (x: number, y: 
   bulb(red.x, red.y, red.z, '#FF3030');
 }
 
-// A lotus rosette in lamp yellow and pink on the board's centre, drawn once to a canvas (no text).
-function lotusEmblem(half: number): THREE.Mesh {
-  const N = 512, c = document.createElement('canvas');
-  c.width = c.height = N;
-  const g = c.getContext('2d')!;
+// Board centre for the Night Map look (owner reference, 2026-11-23): a faint street map, the game
+// name across the middle and the two card decks laid on the board, all drawn on one canvas.
+export interface CenterText { title: string; lucky: string; dohs: string; font: string }
+
+export function drawCenter(c: HTMLCanvasElement, txt: CenterText): void {
+  const N = c.width, g = c.getContext('2d')!;
+  g.clearRect(0, 0, N, N);
+  g.save();
+  // faint street map
+  g.strokeStyle = 'rgba(255,214,107,0.10)';
+  g.lineWidth = 10;
+  for (const k of [0.2, 0.5, 0.8]) { g.beginPath(); g.moveTo(0, N * k); g.lineTo(N, N * k); g.stroke(); g.beginPath(); g.moveTo(N * k, 0); g.lineTo(N * k, N); g.stroke(); }
+  g.strokeStyle = 'rgba(25,179,166,0.22)';
+  g.lineWidth = 34;
+  g.beginPath(); g.moveTo(0, N * 0.9); g.bezierCurveTo(N * 0.3, N * 0.78, N * 0.6, N * 1.02, N, N * 0.86); g.stroke();
+  // game name across the middle
   g.translate(N / 2, N / 2);
-  g.lineWidth = 4;
-  g.strokeStyle = 'rgba(255,214,107,0.7)';
-  for (const r of [236, 214]) { g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke(); }
-  for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; g.fillStyle = i % 2 ? 'rgba(244,154,180,0.8)' : 'rgba(255,214,107,0.8)'; g.beginPath(); g.arc(Math.cos(a) * 225, Math.sin(a) * 225, 4, 0, Math.PI * 2); g.fill(); }
-  const petals = (n: number, len: number, wid: number, fill: string, rot: number) => {
-    for (let i = 0; i < n; i++) {
-      g.save();
-      g.rotate((i / n) * Math.PI * 2 + rot);
-      g.beginPath();
-      g.moveTo(0, -40);
-      g.quadraticCurveTo(wid, -len * 0.6, 0, -len);
-      g.quadraticCurveTo(-wid, -len * 0.6, 0, -40);
-      g.fillStyle = fill;
-      g.fill();
-      g.restore();
-    }
-  };
-  petals(12, 200, 40, '#C8467F', Math.PI / 12);
-  petals(12, 160, 30, '#E8B34A', 0);
-  g.fillStyle = '#FFD66B';
-  g.beginPath(); g.arc(0, 0, 44, 0, Math.PI * 2); g.fill();
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const size = (half - 1.6) * 2 * 0.86;
-  const geo = new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2);
-  geo.translate(0, 0.003, 0);
-  return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  g.rotate(-Math.PI / 4);
+  g.fillStyle = 'rgba(255,214,107,0.2)';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  let size = 190;
+  do { g.font = `400 ${size}px "Rozha One", ${txt.font}`; size -= 6; } while (g.measureText(txt.title).width > N * 1.05 && size > 60);
+  g.fillText(txt.title, 0, 10);
+  g.restore();
+  deck(g, N * 0.3, N * 0.29, '#0E7C88', txt.dohs, txt.font);
+  deck(g, N * 0.7, N * 0.71, '#C42A72', txt.lucky, txt.font);
+}
+
+function deck(g: CanvasRenderingContext2D, x: number, y: number, main: string, name: string, font: string): void {
+  const W = 380, H = 220;
+  g.save();
+  g.translate(x, y);
+  g.rotate(-Math.PI / 4);
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  roundRect(g, -W / 2 + 10, -H / 2 + 14, W, H, 22); g.fill(); // shadow
+  g.setLineDash([16, 12]);
+  g.strokeStyle = 'rgba(255,241,220,0.7)';
+  g.lineWidth = 5;
+  roundRect(g, -W / 2 - 18, -H / 2 - 18, W + 36, H + 36, 30); g.stroke();
+  g.setLineDash([]);
+  for (const [o, c] of [[10, '#FFF1DC'], [5, '#EAD7B4'], [0, main]] as const) { g.fillStyle = c; roundRect(g, -W / 2 - o, -H / 2 - o, W, H, 22); g.fill(); } // a stack of cards
+  g.strokeStyle = '#FFD66B';
+  g.lineWidth = 6;
+  roundRect(g, -W / 2 + 14, -H / 2 + 14, W - 28, H - 28, 14); g.stroke();
+  const petals = ['#FFD66B', '#FFFFFF', '#19B3A6'];
+  for (let k = 0; k < 9; k++) for (const yy of [-H / 2 + 32, H / 2 - 32]) {
+    const xx = -W / 2 + 40 + k * ((W - 80) / 8);
+    g.fillStyle = petals[(k + (yy > 0 ? 1 : 0)) % 3]!;
+    for (let p = 0; p < 5; p++) { const a = (p / 5) * Math.PI * 2; g.beginPath(); g.arc(xx + Math.cos(a) * 7, yy + Math.sin(a) * 7, 5, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#E0262F'; g.beginPath(); g.arc(xx, yy, 3.5, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#FFFFFF';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = `400 64px "Rozha One", ${font}`;
+  g.shadowColor = 'rgba(11,10,30,0.6)';
+  g.shadowOffsetY = 4;
+  g.fillText(name, 0, 6, W - 70);
+  g.restore();
+}
+
+function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  g.beginPath();
+  g.roundRect(x, y, w, h, r);
 }
 
 // Truck-art paint for a built landmark: pale walls take one paint; signs and dark roofs keep theirs.

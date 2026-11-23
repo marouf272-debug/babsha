@@ -10,13 +10,16 @@ import type { SceneConfig } from './config';
 import { dressers } from './models/dressing';
 import { Scenery, type KitContext, type TileFrame } from './models/scenery';
 import { tokenGeometry } from './models/tokens';
-import { buildNightMap, domedHotel, PAINT, repaint } from './models/city';
+import { buildNightMap, domedHotel, drawCenter, PAINT, repaint } from './models/city';
 
 export interface SceneText {
   tileName(tile: Tile): string;
   tileNote(tile: Tile): string; // price, tax amount or deck name; '' for none
   signName(tile: Tile): string; // always Bangla (plan 3.7, D-74)
   font: string;
+  // Night Map look only: the game name and deck names drawn on the board centre.
+  title?: string;
+  deckName?(deck: 'lucky' | 'dohs'): string;
 }
 
 export interface SceneOptions {
@@ -49,6 +52,7 @@ export class BoardScene {
   private readonly reduced: boolean;
   private labelCanvas!: HTMLCanvasElement;
   private labelTexture!: THREE.CanvasTexture;
+  private center: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture } | null = null;
   private strips!: THREE.InstancedMesh;
   private houses!: THREE.InstancedMesh;
   private roofs!: THREE.InstancedMesh;
@@ -145,6 +149,15 @@ export class BoardScene {
     if (nightMap) {
       const spot = (id: string) => { const t = this.rules.tiles.find((x) => x.id === id); return t ? this.placements[t.pos] : undefined; };
       this.scene.add(buildNightMap(this.kit, this.half, { cha: spot('cha_adda'), jam: spot('go_to_jam') }, this.cfg.skyline === true));
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 1024;
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      const size = (this.half - board.tileDepth) * 2;
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2).translate(0, 0.003, 0), new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }));
+      this.scene.add(plane);
+      this.center = { canvas, texture };
     }
     // Each property's landmark is its own small group, hidden until the first house (D-84).
     const all = dressers(dressing.textShare, dressing.houseLane);
@@ -199,6 +212,10 @@ export class BoardScene {
     const g = this.labelCanvas.getContext('2d')!;
     g.clearRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
     const txt = this.text();
+    if (this.center) {
+      drawCenter(this.center.canvas, { title: txt.title ?? '', lucky: txt.deckName?.('lucky') ?? '', dohs: txt.deckName?.('dohs') ?? '', font: txt.font });
+      this.center.texture.needsUpdate = true;
+    }
     this.rules.tiles.forEach((t, i) => {
       g.save();
       g.translate((i % 8) * CELL + 4, Math.floor(i / 8) * CELL + 4);

@@ -95,6 +95,7 @@
   "card.dohs_16": "A morning walk by the lake sounds perfect. Advance to {tile}. Collect {salary} if you pass GO.",
   "lang.toggle": "বাংলা",
   "menu.newGame": "New game",
+  "menu.title": "Menu",
   "setup.heading": "New game",
   "setup.players": "Players",
   "setup.start": "Start game",

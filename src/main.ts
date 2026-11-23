@@ -30,7 +30,7 @@ async function main(): Promise<void> {
 
   // Bangla tile signs are drawn on canvas, so the font must be loaded before the first draw.
   try {
-    await Promise.all([document.fonts.load('600 20px "Noto Sans Bengali"', 'বাংলা'), document.fonts.load('400 20px "Noto Sans Bengali"', 'বাংলা')]);
+    await Promise.all([document.fonts.load('600 20px "Noto Sans Bengali"', 'বাংলা'), document.fonts.load('400 20px "Noto Sans Bengali"', 'বাংলা'), document.fonts.load('400 20px "Rozha One"', 'Dhaka')]);
   } catch { /* fall back to system fonts */ }
 
   const engine = createEngine(makeRules(tilesDoc, config, cardsDoc));
@@ -65,6 +65,8 @@ async function main(): Promise<void> {
       tileName: (tile) => t(tile.nameKey),
       tileNote: (tile) => (tile.type === 'property' || tile.type === 'hub' || tile.type === 'utility' ? money(engine.quote(showcaseState(engine), tile.id).price) : ''),
       signName: (tile) => tIn('bn', tile.nameKey),
+      title: t('app.title'),
+      deckName: (deck) => t(`deck.${deck}`),
     }), { instant: !bench, fps });
     scene.sync(showcaseState(engine));
     if (bench) scene.benchmark();

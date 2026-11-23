@@ -7,7 +7,7 @@ import type { Action, Engine, GameEvent, GameState, Tile, TradeOffer } from '../
 import { getLang, money, num, setLang, t, tIn } from '../i18n';
 import { BoardScene, type SceneText } from '../scene/board';
 import type { SceneConfig } from '../scene/config';
-import { cardText, describeLines, findCard, playerName, tileName } from './describe';
+import { cardText, describeLines, findCard, playerName, tileName, TOKENS } from './describe';
 import { cueFor } from '../audio/cues';
 import { Sfx } from '../audio/sfx';
 import { cardArt } from './cardArt';
@@ -250,6 +250,8 @@ export class App {
       font: FONT,
       tileName: (tile: Tile) => t(tile.nameKey),
       signName: (tile: Tile) => tIn('bn', tile.nameKey),
+      title: t('app.title'),
+      deckName: (deck) => t(`deck.${deck}`),
       tileNote: (tile: Tile) => {
         if (tile.type === 'property' || tile.type === 'hub' || tile.type === 'utility') return money(this.o.engine.quote(this.session!.state, tile.id).price);
         if (tile.type === 'tax') return money(rules.config.tax[tile.tax!] ?? 0);
@@ -397,13 +399,19 @@ export class App {
 
   private renderTop(s: GameState): void {
     const label = s.turn.phase === 'GAME_OVER' ? t('over.title', { name: playerName(s.winner!) }) : t('hud.turn', { name: playerName(s.turn.active) });
-    this.els['top']!.replaceChildren(
-      h('div', { class: 'turn', 'data-testid': 'turn' }, label),
-      ...(this.settings.timer ? [h('div', { class: 'timer', 'data-testid': 'timer', role: 'timer', hidden: true }, icon('timer', 18), h('span', {}, ''))] : []),
+    // The settings sit in their own group: a row in the top strip, or the Menu pop-up in the Night Map look.
+    const items = h('div', { class: 'menu-items', 'data-testid': 'menu-items' },
       this.langButton(),
       this.soundButton(),
       this.logButton(),
       h('button', { class: 'chip icon', 'data-testid': 'new-game', 'aria-label': t('menu.newGame'), title: t('menu.newGame'), onclick: () => { if (this.o.test || window.confirm(t('menu.confirmNew'))) this.renderSetup(); } }, icon('newGame', 20)),
+    );
+    items.addEventListener('click', () => this.els['top']!.parentElement?.classList.remove('menu-open'));
+    this.els['top']!.replaceChildren(
+      h('div', { class: 'turn-row' },
+        h('div', { class: 'turn', 'data-testid': 'turn' }, label),
+        ...(this.settings.timer ? [h('div', { class: 'timer', 'data-testid': 'timer', role: 'timer', hidden: true }, icon('timer', 18), h('span', {}, ''))] : [])),
+      items,
     );
   }
 
@@ -412,7 +420,8 @@ export class App {
     const session = this.session!;
     const pips: Record<number, number[]> = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
     const die = (v: number) => h('div', { class: 'die', 'aria-label': num(v) }, ...Array.from({ length: 9 }, (_, k) => h('i', { class: pips[v]?.includes(k) ? 'on' : '' })));
-    const roll = h('div', { class: 'roll', 'data-testid': 'last-roll' }, ...(this.lastRoll ?? []).map(die));
+    // Before the first roll of a turn, two blank dice hold the spot (shown only in the Night Map look).
+    const roll = h('div', { class: 'roll', 'data-testid': 'last-roll' }, ...(this.lastRoll ? this.lastRoll.map(die) : [0, 0].map(() => h('div', { class: 'die idle', 'aria-hidden': 'true' }))));
     const rows = Math.ceil(s.players.length / 2);
     roll.style.gridRow = `1 / span ${rows}`;
     this.els['players']!.replaceChildren(roll, ...s.players.map((p, i) => h('div', {
@@ -421,7 +430,7 @@ export class App {
       onclick: () => this.openInfo({ kind: 'player', player: i }),
       onkeydown: (e) => { if ((e as KeyboardEvent).key === 'Enter') this.openInfo({ kind: 'player', player: i }); },
     },
-    h('span', { class: 'swatch', style: `background:${this.color(i)}` }),
+    h('span', { class: 'swatch', style: `background:${this.color(i)}` }, icon(TOKENS[i] ?? 'coins', 22, '#FFFFFF')),
     h('span', { class: 'pname' }, playerName(i)),
     h('span', { class: 'cash' }, money(p.cash)),
     h('span', { class: 'flags' }, p.bankrupt ? t('hud.bankrupt') : p.inJam ? t('hud.inJam') : session.isHuman(i) ? '' : t(`seat.${session.seats[i]}`)),
@@ -456,7 +465,12 @@ export class App {
       onclick: () => { const same = this.panel === 'manage' && this.mode === mode; this.panel = same ? null : 'manage'; this.mode = same ? null : mode; this.render(); },
     }, label);
     const others = s.players.some((p, i) => i !== who && !p.bankrupt);
+    const menu = this.els['top']!.parentElement;
     const tools = h('div', { class: 'tools' },
+      h('button', {
+        class: 'tool menu', 'data-testid': 'menu', 'aria-expanded': menu?.classList.contains('menu-open') ? 'true' : 'false',
+        onclick: (e) => { const open = menu?.classList.toggle('menu-open') ?? false; (e.currentTarget as HTMLElement).setAttribute('aria-expanded', String(open)); },
+      }, t('menu.title')),
       tool('act-build', t('action.build'), 'BUILD'),
       tool('act-sell', t('action.sell'), 'SELL_BUILDING'),
       tool('act-mortgage', t('action.mortgage'), 'MORTGAGE'),

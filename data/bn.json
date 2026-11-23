@@ -95,6 +95,7 @@
   "card.dohs_16": "লেকের পাড়ে সকালের হাঁটা দারুণ লাগবে। {tile} পর্যন্ত এগিয়ে যান। শুরু পার হলে {salary} নিন।",
   "lang.toggle": "English",
   "menu.newGame": "নতুন খেলা",
+  "menu.title": "মেনু",
   "setup.heading": "নতুন খেলা",
   "setup.players": "খেলোয়াড়",
   "setup.start": "খেলা শুরু করুন",

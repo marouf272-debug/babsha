@@ -1,7 +1,8 @@
 {
   "status": "Bangla strings waiting for a native reader are listed under keys. The owner reviewed every string on 2026-11-09 (D-99); approved holds each string exactly as approved. A new or changed Bangla string goes under keys as \"needs native review\".",
   "keys": {
-    "app.version": "needs native review"
+    "app.version": "needs native review",
+    "menu.title": "needs native review"
   },
   "approved": {
     "app.title": "ঢাকা ডাইস",
