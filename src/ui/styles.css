@@ -73,8 +73,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .counts { display: flex; gap: 8px; flex-wrap: wrap; }
 .seats { display: flex; flex-direction: column; gap: 8px; }
 .seat { display: flex; align-items: center; gap: 10px; background: var(--paper); border-radius: 12px; padding: 6px 10px; box-shadow: inset 0 0 0 1px var(--paperEdge); }
-.seat-name { flex: 1; font-weight: 700; }
-.seat select { min-height: var(--tap); border-radius: 10px; border: 1px solid var(--paperEdge); padding: 0 8px; background: #fff; }
+.seat-name { flex: 0 0 auto; min-width: 64px; font-weight: 700; }
+.seat-input { flex: 1 1 0; min-width: 72px; min-height: var(--tap); border-radius: 10px; border: 1px solid var(--paperEdge); padding: 0 8px; background: #fff; font: inherit; }
+.seat select { flex: 0 1 auto; max-width: 40%; min-height: var(--tap); border-radius: 10px; border: 1px solid var(--paperEdge); padding: 0 8px; background: #fff; }
 .top .timer { display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap); padding: 0 10px; border-radius: 999px; background: rgba(255,255,255,0.14); font-weight: 700; font-variant-numeric: tabular-nums; }
 .top .timer[hidden] { display: none; }
 .top .timer.low { background: #C8102E; }
@@ -138,11 +139,11 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 .main-row > button { flex: 1; }
 .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .tool { padding: 4px 2px; font-size: 0.8rem; color: #fff; min-width: 0; }
-.tool:nth-child(1) { background: var(--btn-build); }
-.tool:nth-child(2) { background: var(--btn-sell); }
-.tool:nth-child(3) { background: var(--btn-mortgage); }
-.tool:nth-child(4) { background: var(--btn-redeem); }
-.tool:nth-child(5) { background: var(--btn-trade); }
+.tool[data-testid="act-build"] { background: var(--btn-build); }
+.tool[data-testid="act-sell"] { background: var(--btn-sell); }
+.tool[data-testid="act-mortgage"] { background: var(--btn-mortgage); }
+.tool[data-testid="act-redeem"] { background: var(--btn-redeem); }
+.tool[data-testid="act-trade"] { background: var(--btn-trade); }
 .tool.on { outline: 3px solid var(--ink); outline-offset: 1px; }
 .thinking { color: var(--muted); padding: 8px 0; font-weight: 700; }
 
@@ -277,11 +278,13 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
 :root[data-look="nightmap"] .band.plain,
 :root[data-look="nightmap"] .band.debt { background: linear-gradient(#FF8A1E, #E0262F); }
 :root[data-look="nightmap"] .band.auction { color: var(--night); text-shadow: none; }
+:root[data-look="nightmap"] .sheet.compact .band { font-size: 1.1rem; padding: 8px 10px 7px; margin-bottom: 10px; }
 :root[data-look="nightmap"] .card-box .band { border-radius: 50% 50% 0 0 / 26px 26px 0 0; }
 :root[data-look="nightmap"] .overlay { background: rgba(11,10,30,0.42); }
+:root[data-look="nightmap"] .deed .note { padding: 0 12px 8px; }
 :root[data-look="nightmap"] .deed { box-shadow: inset 0 0 0 2px var(--paperEdge), 0 3px 0 rgba(11,10,30,0.2); }
 :root[data-look="nightmap"] .note { color: #6A4B2E; }
-:root[data-look="nightmap"] [data-action*='"type":"BUY"'] { background: #1F8A4C; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); font-size: 1.05rem; }
+:root[data-look="nightmap"] button[data-action*='"type":"BUY"'] { background: #1F8A4C; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); font-size: 1.05rem; }
 :root[data-look="nightmap"] [data-action*='"type":"DECLINE"'],
 :root[data-look="nightmap"] [data-testid$="-close"],
 :root[data-look="nightmap"] [data-testid="trade-cancel"] { background: #D3202A; color: #FFFFFF; box-shadow: inset 0 0 0 2px var(--night), 0 3px 0 var(--night); }
@@ -331,7 +334,10 @@ canvas.board { position: absolute; inset: 0; width: 100%; height: 100%; display:
   :root[data-look="nightmap"] .main-row { grid-area: main; padding: 4px 12px; }
   :root[data-look="nightmap"] .main-row > button { min-height: 52px; font-size: 1.15rem; }
   :root[data-look="nightmap"] .log { grid-area: log; background: transparent; color: rgba(255,241,220,0.8); text-align: center; padding: 4px 12px 10px; }
-  :root[data-look="nightmap"] .board-wrap .sheet { width: min(340px, 86%); }
+  :root[data-look="nightmap"] .board-wrap .sheet { width: min(340px, 86vw); }
+  /* Big pop-ups are taller than the board on a phone, so they centre on the screen instead. */
+  :root[data-look="nightmap"] .board-wrap .sheet:not(.compact),
+  :root[data-look="nightmap"] .overlay { position: fixed; z-index: 20; }
   :root[data-look="nightmap"] .board-wrap .card-box { width: min(340px, 86%); }
   /* Menu: language, sound, log and new game in a small card over the bottom of the board. */
   :root[data-look="nightmap"] .menu-items { grid-area: board; align-self: end; justify-self: start; margin: 0 0 8px 8px; z-index: 12; display: none;

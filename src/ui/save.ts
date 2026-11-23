@@ -4,6 +4,7 @@
 
 import type { AiMemory } from '../ai';
 import type { Engine, GameEvent, GameState } from '../engine';
+import { NAME_MAX } from './describe';
 import type { SeatKind } from './session';
 
 export const SAVE_KEY = 'babsha.save';
@@ -14,6 +15,8 @@ const SEAT_KINDS: SeatKind[] = ['human', 'easy', 'medium', 'hard'];
 export interface GameSettings {
   // FR-14: the optional turn timer (D-34).
   timer: boolean;
+  // D-112: optional player names typed at setup, one per seat ('' keeps the token name).
+  names?: string[];
 }
 
 export interface SaveGame {
@@ -45,6 +48,8 @@ export function decodeSave(raw: string, engine: Engine): SaveGame | null {
   const { seats, state, memories, settings, events } = v;
   if (!Array.isArray(seats) || !seats.every((s) => SEAT_KINDS.includes(s as SeatKind))) return null;
   if (!isObject(settings) || typeof settings['timer'] !== 'boolean') return null;
+  const names = settings['names'];
+  if (names !== undefined && (!Array.isArray(names) || names.length !== seats.length || !names.every((n) => typeof n === 'string' && n.length <= NAME_MAX))) return null;
   if (typeof v['seed'] !== 'number' || typeof v['aiRng'] !== 'number' || typeof v['savedAt'] !== 'number') return null;
   if (!Array.isArray(memories) || memories.length !== seats.length || !Array.isArray(events)) return null;
   if (!isObject(state) || state['version'] !== STATE_VERSION || typeof state['rng'] !== 'number') return null;

@@ -230,6 +230,8 @@
   "setup.startCash": "শুরুর টাকা",
   "setup.timer": "চালের সময়সীমা",
   "setup.timerOff": "বন্ধ",
+  "setup.namePlaceholder": "নাম",
+  "setup.nameFor": "{token}-এর জন্য নাম",
   "setup.timerOn": "{seconds} সেকেন্ড",
   "timer.label": "সিদ্ধান্ত নিতে আর {seconds} সেকেন্ড"
 }

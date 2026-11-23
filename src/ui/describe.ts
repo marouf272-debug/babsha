@@ -6,7 +6,13 @@ import { money, num, t } from '../i18n';
 export const TOKENS = ['rickshaw', 'cng', 'ilish', 'kite', 'tea_cup', 'bus'] as const;
 
 // D-66: a player's name is their token's name in the current language.
-export const playerName = (player: number) => t(`token.${TOKENS[player % TOKENS.length]}`);
+export const tokenName = (player: number) => t(`token.${TOKENS[player % TOKENS.length]}`);
+
+// D-112: names typed on the setup screen replace the token name; the token itself stays.
+export const NAME_MAX = 16;
+let names: string[] = [];
+export const setPlayerNames = (list: readonly string[]) => { names = list.map((n) => n.trim().slice(0, NAME_MAX)); };
+export const playerName = (player: number) => names[player] || tokenName(player);
 
 export function tileName(rules: Rules, tileId: string): string {
   const tile = rules.tiles.find((x) => x.id === tileId);

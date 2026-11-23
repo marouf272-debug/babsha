@@ -292,6 +292,52 @@ function deck(g: CanvasRenderingContext2D, x: number, y: number, main: string, n
   g.restore();
 }
 
+// Tile badges for the Night Map look (owner references, 2026-11-23), drawn on the label atlas:
+// big diamonds on the corners, small deck-coloured discs on Lucky and DOHS tiles.
+export type BadgeKind = 'go' | 'jam' | 'cha_adda' | 'go_to_jam' | 'lucky' | 'dohs';
+const BADGE: Record<BadgeKind, string> = { go: '#1F8A4C', jam: '#7A3FC0', cha_adda: '#12808C', go_to_jam: '#E0262F', lucky: '#C42A72', dohs: '#0E7C88' };
+
+// (x, y) is the centre, r the half-size; dir is the GO arrow's direction on the canvas.
+export function drawBadge(g: CanvasRenderingContext2D, kind: BadgeKind, x: number, y: number, r: number, dir = { x: -1, y: 0 }): void {
+  const ink = '#1B1440', white = '#FFF6E2';
+  g.save();
+  g.translate(x, y);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  g.beginPath();
+  if (kind === 'lucky' || kind === 'dohs') g.arc(0, 0, r, 0, Math.PI * 2);
+  else { g.moveTo(0, -r); g.lineTo(r, 0); g.lineTo(0, r); g.lineTo(-r, 0); g.closePath(); }
+  g.fillStyle = BADGE[kind]; g.fill();
+  g.lineWidth = r * 0.12; g.strokeStyle = white; g.stroke();
+  g.lineWidth = r * 0.05; g.strokeStyle = ink; g.stroke();
+  const s = r * 0.42; // icon scale
+  g.fillStyle = white; g.strokeStyle = white; g.lineWidth = s * 0.22;
+  if (kind === 'cha_adda') { // tea cup with steam
+    g.beginPath(); g.moveTo(-s * 0.8, -s * 0.15); g.lineTo(s * 0.55, -s * 0.15); g.lineTo(s * 0.4, s * 0.75); g.lineTo(-s * 0.65, s * 0.75); g.closePath(); g.fill();
+    g.beginPath(); g.arc(s * 0.62, s * 0.25, s * 0.28, -Math.PI / 2, Math.PI / 2); g.stroke();
+    for (const k of [-0.4, 0.05]) { g.beginPath(); g.moveTo(s * k, -s * 0.4); g.quadraticCurveTo(s * (k + 0.25), -s * 0.7, s * k, -s * 1.0); g.stroke(); }
+  } else if (kind === 'go_to_jam') { // traffic cone
+    g.beginPath(); g.moveTo(0, -s * 1.05); g.lineTo(s * 0.55, s * 0.6); g.lineTo(-s * 0.55, s * 0.6); g.closePath(); g.fill();
+    g.fillRect(-s * 0.85, s * 0.6, s * 1.7, s * 0.3);
+    g.fillStyle = BADGE[kind]; g.fillRect(-s * 0.4, -s * 0.15, s * 0.8, s * 0.22);
+  } else if (kind === 'jam') { // traffic light
+    g.fillStyle = ink; roundRect(g, -s * 0.45, -s * 1.05, s * 0.9, s * 2.1, s * 0.25); g.fill();
+    g.lineWidth = s * 0.12; g.stroke();
+    ['#FF3B3B', '#FFC93C', '#3BD16F'].forEach((c, k) => { g.fillStyle = c; g.beginPath(); g.arc(0, -s * 0.62 + k * s * 0.62, s * 0.24, 0, Math.PI * 2); g.fill(); });
+  } else if (kind === 'go') { // arrow along the direction of travel
+    g.rotate(Math.atan2(dir.y, dir.x));
+    g.beginPath(); g.moveTo(s * 1.0, 0); g.lineTo(s * 0.1, -s * 0.75); g.lineTo(s * 0.1, -s * 0.3); g.lineTo(-s * 0.95, -s * 0.3);
+    g.lineTo(-s * 0.95, s * 0.3); g.lineTo(s * 0.1, s * 0.3); g.lineTo(s * 0.1, s * 0.75); g.closePath(); g.fill();
+  } else if (kind === 'lucky') { // question mark
+    g.font = `800 ${Math.round(r * 1.3)}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', 0, r * 0.06);
+  } else { // DOHS: a small house
+    g.beginPath(); g.moveTo(0, -s * 0.95); g.lineTo(s * 0.9, -s * 0.1); g.lineTo(-s * 0.9, -s * 0.1); g.closePath(); g.fill();
+    g.fillRect(-s * 0.6, -s * 0.1, s * 1.2, s * 0.9);
+    g.fillStyle = BADGE[kind]; g.fillRect(-s * 0.18, s * 0.3, s * 0.36, s * 0.5);
+  }
+  g.restore();
+}
+
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   g.beginPath();
   g.roundRect(x, y, w, h, r);

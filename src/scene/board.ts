@@ -10,7 +10,7 @@ import type { SceneConfig } from './config';
 import { dressers } from './models/dressing';
 import { Scenery, type KitContext, type TileFrame } from './models/scenery';
 import { tokenGeometry } from './models/tokens';
-import { buildNightMap, domedHotel, drawCenter, PAINT, repaint } from './models/city';
+import { buildNightMap, domedHotel, drawBadge, drawCenter, PAINT, repaint, type BadgeKind } from './models/city';
 
 export interface SceneText {
   tileName(tile: Tile): string;
@@ -67,6 +67,7 @@ export class BoardScene {
   // Landmarks per property, shown only once someone builds there (D-84).
   private readonly landmarks = new Map<string, THREE.Group>();
   private built = new Set<string>();
+  private mortgaged = new Set<string>();
   private dirty = true;
   private state: GameState | null = null;
   private readonly fps: { el: HTMLElement; frames: number; since: number; history: number[] } | null;
@@ -262,26 +263,40 @@ export class BoardScene {
       const pad = Math.round(0.17 * LABEL_SCALE);
       if (iz < -0.5) rh -= pad; else if (iz > 0.5) { ry += pad; rh -= pad; } else if (ix > 0.5) { rx += pad; rw -= pad; } else rw -= pad;
     }
+    const night = this.cfg.look === 'nightmap';
+    // Night Map badges: a big diamond under the corner name, a small disc on Lucky and DOHS tiles.
+    const badge: BadgeKind | null = !night ? null : t.type === 'corner' ? (t.corner as BadgeKind) : t.type === 'lucky' || t.type === 'dohs' ? t.type : null;
+    if (badge) {
+      const big = t.type === 'corner';
+      const r = big ? Math.min(W, H) * 0.25 : Math.min(rw, rh) * 0.16;
+      const by = big ? H * 0.66 : ry + rh - r - 8;
+      const p1 = this.placements[(t.pos + 1) % this.placements.length]!;
+      drawBadge(g, badge, rx + rw / 2, by, r, { x: p1.x - p.x, y: p1.z - p.z });
+      rh = big ? H * 0.66 - r - ry - 4 : rh - r * 2 - 10; // the name keeps to the space above
+    }
     g.fillStyle = colors.tileText;
     g.textAlign = 'center';
     g.textBaseline = 'top';
     const note = txt.tileNote(t);
+    const weight = night ? 800 : 700;
     // Shrink the text until the name's lines and the price fit the region without overlapping.
-    let size = Math.round(Math.min(rw * 0.24, rh * 0.26, this.built.has(t.id) ? 30 : 40));
+    // Night Map: bolder, larger names; a badge tile's name may fill the whole space above its badge.
+    let size = Math.round(Math.min(rw * (night ? 0.27 : 0.24), rh * (badge ? 0.8 : night ? 0.3 : 0.26), this.built.has(t.id) ? 30 : night ? 46 : 40));
     let lines: string[] = [];
     for (; size > 10; size -= 2) {
-      g.font = `700 ${size}px ${txt.font}`;
+      g.font = `${weight} ${size}px ${txt.font}`;
       lines = wrap(g, txt.tileName(t), rw * 0.92).slice(0, 3);
       const need = 8 + lines.length * size * 1.12 + (note ? size * 0.85 + 8 : 0);
       if (need <= rh - 4) break;
     }
-    g.font = `700 ${size}px ${txt.font}`;
+    g.font = `${weight} ${size}px ${txt.font}`;
     lines.forEach((line, k) => g.fillText(line, rx + rw / 2, ry + 8 + k * size * 1.12, rw * 0.94));
     if (note) {
       g.font = `600 ${Math.round(size * 0.85)}px ${txt.font}`;
       g.textBaseline = 'bottom';
       g.fillText(note, rx + rw / 2, ry + rh - 4, rw * 0.94);
     }
+    if (this.mortgaged.has(t.id)) { g.fillStyle = 'rgba(27,20,64,0.55)'; g.fillRect(4, 4, W - 8, H - 8); }
   }
 
   // ---------- instanced pieces: owner bands, houses, roofs, hotels, highlights ----------
@@ -459,13 +474,18 @@ export class BoardScene {
     }
     this.state = state;
     const built = new Set(Object.entries(state.properties).filter(([, x]) => x.houses > 0).map(([id]) => id));
-    const changed = built.size !== this.built.size || [...built].some((id) => !this.built.has(id));
+    const differs = (a: Set<string>, b: Set<string>) => a.size !== b.size || [...a].some((id) => !b.has(id));
+    const changed = differs(built, this.built);
     if (changed) {
       for (const id of built) if (!this.built.has(id) && prev && !this.opts.instant && !this.reduced) this.pops.set(`landmark:${id}`, performance.now());
       this.built = built;
       for (const [id, g] of this.landmarks) g.visible = built.has(id);
-      this.refreshText();
     }
+    // Night Map: mortgaged tiles are drawn dimmed, so the labels redraw when that changes.
+    const mortgaged = new Set(this.cfg.look === 'nightmap' ? Object.entries(state.properties).filter(([, x]) => x.mortgaged).map(([id]) => id) : []);
+    const remort = differs(mortgaged, this.mortgaged);
+    this.mortgaged = mortgaged;
+    if (changed || remort) this.refreshText();
     while (this.tokens.length < state.players.length) this.tokens.push(this.makeToken(this.tokens.length));
     state.players.forEach((p, i) => {
       const tok = this.tokens[i]!;

@@ -230,6 +230,8 @@
   "setup.startCash": "Start cash",
   "setup.timer": "Turn timer",
   "setup.timerOff": "Off",
+  "setup.namePlaceholder": "Name",
+  "setup.nameFor": "Name for {token}",
   "setup.timerOn": "{seconds} seconds",
   "timer.label": "{seconds} seconds left to decide"
 }

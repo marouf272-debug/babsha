@@ -59,6 +59,15 @@ describe('save and resume (FR-19, D-92)', () => {
     expect(save.state).toEqual(s.state);
   });
 
+  it('D-112: player names typed at setup survive a save; bad names are refused', () => {
+    const { s } = makeSession(['human', 'easy']);
+    const ok = decodeSave(encodeSave(s.snapshot({ timer: false, names: ['Rafi', ''] }, [])), engine)!;
+    expect(ok.settings.names).toEqual(['Rafi', '']);
+    expect(decodeSave(encodeSave(s.snapshot({ timer: false }, [])), engine)).not.toBeNull(); // older saves have no names
+    expect(decodeSave(encodeSave(s.snapshot({ timer: false, names: ['Rafi'] }, [])), engine)).toBeNull();
+    expect(decodeSave(encodeSave(s.snapshot({ timer: false, names: ['x'.repeat(40), ''] }, [])), engine)).toBeNull();
+  });
+
   it('FR-19: a resumed human game waits for the same human, with no move made for them', () => {
     const { s, drain } = makeSession(['human', 'human']);
     s.start();

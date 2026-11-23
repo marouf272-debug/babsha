@@ -7,7 +7,7 @@ import type { Action, Engine, GameEvent, GameState, Tile, TradeOffer } from '../
 import { getLang, money, num, setLang, t, tIn } from '../i18n';
 import { BoardScene, type SceneText } from '../scene/board';
 import type { SceneConfig } from '../scene/config';
-import { cardText, describeLines, findCard, playerName, tileName, TOKENS } from './describe';
+import { cardText, describeLines, findCard, NAME_MAX, playerName, setPlayerNames, tileName, tokenName, TOKENS } from './describe';
 import { cueFor } from '../audio/cues';
 import { Sfx } from '../audio/sfx';
 import { cardArt } from './cardArt';
@@ -43,7 +43,7 @@ const FONT = '"Noto Sans Bengali", system-ui, sans-serif';
 export class App {
   private session: Session | null = null;
   private scene: BoardScene | null = null;
-  private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[], startCash: 0, timer: false };
+  private setup = { count: 2, seats: ['human', 'human', 'human', 'human', 'human', 'human'] as SeatKind[], startCash: 0, timer: false, names: ['', '', '', '', '', ''] };
   private panel: 'manage' | 'trade' | null = null;
   // Which management move the manage sheet lists (FR-17 buttons), or all of them in DEBT.
   private mode: 'BUILD' | 'SELL_BUILDING' | 'MORTGAGE' | 'REDEEM' | null = null;
@@ -116,7 +116,11 @@ export class App {
     for (let i = 0; i < this.setup.count; i++) {
       const select = h('select', { 'data-testid': `seat-${i}`, onchange: (e) => { this.setup.seats[i] = (e.target as HTMLSelectElement).value as SeatKind; } });
       for (const k of SEAT_KINDS) select.append(h('option', { value: k, selected: this.setup.seats[i] === k }, t(`seat.${k}`)));
-      seats.append(h('label', { class: 'seat' }, h('span', { class: 'swatch', style: `background:${this.color(i)}` }), h('span', { class: 'seat-name' }, playerName(i)), select));
+      seats.append(h('label', { class: 'seat' }, h('span', { class: 'swatch', style: `background:${this.color(i)}` }), h('span', { class: 'seat-name' }, tokenName(i)),
+        h('input', { class: 'seat-input', type: 'text', maxlength: NAME_MAX, autocomplete: 'off', placeholder: t('setup.namePlaceholder'),
+          'aria-label': t('setup.nameFor', { token: tokenName(i) }), 'data-testid': `name-${i}`, value: this.setup.names[i],
+          oninput: (e) => { this.setup.names[i] = (e.target as HTMLInputElement).value; } }),
+        select));
     }
     const counts = h('div', { class: 'counts', role: 'group' });
     for (let n = this.o.engine.rules.config.players.min; n <= this.o.engine.rules.config.players.max; n++) {
@@ -179,7 +183,7 @@ export class App {
   private start(): void {
     const seats = this.setup.seats.slice(0, this.setup.count);
     const seed = this.o.test ? 4242 : (Date.now() & 0x7fffffff);
-    this.settings = { timer: this.setup.timer };
+    this.settings = { timer: this.setup.timer, names: this.setup.names.slice(0, this.setup.count).map((n) => n.trim()) };
     this.begin(new Session({
       engine: this.o.engine, ai: this.o.ai, profiles: this.o.profiles, seats, seed, startCash: this.setup.startCash,
       aiDelayMs: this.o.test ? 0 : 650,
@@ -190,6 +194,7 @@ export class App {
 
   private begin(session: Session, events: GameEvent[]): void {
     this.session = session;
+    setPlayerNames(this.settings.names ?? []);
     this.events = [...events];
     this.resumeCover = false;
     this.info = null;
