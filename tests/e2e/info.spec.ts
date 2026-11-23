@@ -5,6 +5,8 @@ type Hook = { __babsha: { app: { tapTargetsForTest(): Array<{ id: string; x: num
 
 test.describe('S6 owner feedback: details, log, trade colors, tools any time', () => {
   test('FR-06, D-88: tapping a built tile shows its owner and houses; tapping a player lists their properties', async ({ page }) => {
+    // D-115: plays turn by turn until Build unlocks; the Night Map board renders slower on CI's software GPU.
+    test.slow();
     await startGame(page, ['human', 'human']);
     for (let i = 0; i < 3000 && !(await page.getByTestId('act-build').isEnabled()); i++) await runSteps(page, 1);
     await page.getByTestId('act-build').click();

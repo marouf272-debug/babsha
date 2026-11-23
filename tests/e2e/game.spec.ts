@@ -52,6 +52,8 @@ test.describe('S4 interface on a phone', () => {
   });
 
   test('FR-17: a fixed action bar offers Build, Sell, Mortgage, Redeem and Trade; Build lists only build moves', async ({ page }) => {
+    // D-115: plays turn by turn until Build unlocks; the Night Map board renders slower on CI's software GPU.
+    test.slow();
     await startGame(page, ['human', 'human']);
     for (const id of ['act-build', 'act-sell', 'act-mortgage', 'act-redeem', 'act-trade']) await expect(page.getByTestId(id)).toBeVisible();
     // Play until the active player can build, then use the Build button.
@@ -67,6 +69,8 @@ test.describe('S4 interface on a phone', () => {
   });
 
   test('FR-06, D-71: Build highlights the usable tiles and tapping one builds there', async ({ page }) => {
+    // D-115: plays turn by turn until Build unlocks; the Night Map board renders slower on CI's software GPU.
+    test.slow();
     await startGame(page, ['human', 'human']);
     for (let i = 0; i < 3000 && !(await page.getByTestId('act-build').isEnabled()); i++) await runSteps(page, 1);
     await page.getByTestId('act-build').click();
