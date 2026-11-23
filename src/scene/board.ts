@@ -10,6 +10,7 @@ import type { SceneConfig } from './config';
 import { dressers } from './models/dressing';
 import { Scenery, type KitContext, type TileFrame } from './models/scenery';
 import { tokenGeometry } from './models/tokens';
+import { buildNightMap, domedHotel, PAINT, repaint } from './models/city';
 
 export interface SceneText {
   tileName(tile: Tile): string;
@@ -140,6 +141,11 @@ export class BoardScene {
       S.solid(new THREE.BoxGeometry(p.w * 0.97, board.tileHeight, p.d * 0.97), colors.tile, new THREE.Vector3(p.x, board.tileHeight / 2, p.z));
     });
     this.scene.add(S.build());
+    const nightMap = this.cfg.look === 'nightmap';
+    if (nightMap) {
+      const spot = (id: string) => { const t = this.rules.tiles.find((x) => x.id === id); return t ? this.placements[t.pos] : undefined; };
+      this.scene.add(buildNightMap(this.kit, this.half, { cha: spot('cha_adda'), jam: spot('go_to_jam') }, this.cfg.skyline === true));
+    }
     // Each property's landmark is its own small group, hidden until the first house (D-84).
     const all = dressers(dressing.textShare, dressing.houseLane);
     for (const t of this.rules.tiles) {
@@ -149,6 +155,7 @@ export class BoardScene {
       const L = new Scenery(this.kit);
       dress(L, this.frameOf(p), this.text().signName(t));
       const inner = L.build();
+      if (nightMap) repaint(inner, PAINT[(t.pos * 3) % PAINT.length]!);
       const pivot = new THREE.Group();
       pivot.position.set(p.x, board.tileHeight, p.z);
       inner.position.set(-p.x, -board.tileHeight, -p.z);
@@ -270,7 +277,10 @@ export class BoardScene {
     const roof = new THREE.ConeGeometry(0.12, 0.09, 4);
     roof.rotateY(Math.PI / 4);
     this.roofs = new THREE.InstancedMesh(roof, lam(colors.houseRoof), this.buyable.length * 4);
-    this.hotels = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lam(colors.hotel), this.buyable.length);
+    // Night Map hotels are pink domed buildings (owner: domes appear only once someone builds).
+    this.hotels = this.cfg.look === 'nightmap'
+      ? new THREE.InstancedMesh(domedHotel(), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), this.buyable.length)
+      : new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.3, 0.16), lam(colors.hotel), this.buyable.length);
     this.highlights = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: this.cfg.colors.palette['rickYellow'], transparent: true, opacity: 0.45, depthWrite: false }), this.rules.tiles.length);
     for (const m of [this.strips, this.houses, this.roofs, this.hotels, this.highlights]) {
@@ -320,8 +330,8 @@ export class BoardScene {
       const b = f.depth / 2 - dressing.houseLane / 2;
       if (owned.houses > this.rules.config.building.maxHouses) {
         const kh = pop(`hotel:${t.id}`);
-        q.setFromAxisAngle(up, 0);
-        m.compose(v.set(f.center.x + f.inward.x * b, f.center.y + 0.15 * kh, f.center.z + f.inward.y * b), q, sc.set((vertical ? 0.16 : 0.5) * kh, 0.3 * kh, (vertical ? 0.5 : 0.16) * kh));
+        q.setFromAxisAngle(up, vertical ? Math.PI / 2 : 0);
+        m.compose(v.set(f.center.x + f.inward.x * b, f.center.y + 0.15 * kh, f.center.z + f.inward.y * b), q, sc.set(kh, kh, kh));
         this.hotels.setMatrixAt(nHotel++, m);
       } else {
         for (let h = 0; h < owned.houses; h++) {

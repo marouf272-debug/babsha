@@ -116,5 +116,27 @@
     "textShare": 0.45,
     "maxHeight": 1.3,
     "houseLane": 0.3
+  },
+  "looks": {
+    "nightmap": {
+      "colors": {
+        "background": "#1A1442",
+        "board": "#1D2F6B",
+        "boardRim": "#FFD66B",
+        "tile": "#F3E6CC",
+        "tileEdge": "#E0CFA8",
+        "house": "#FFF1DC",
+        "houseRoof": "#E0262F",
+        "hotel": "#F7B6CB"
+      },
+      "lighting": {
+        "skyColor": "#FFF1DC",
+        "groundColor": "#3B2466",
+        "hemiIntensity": 1.75,
+        "sunColor": "#FFE7C2",
+        "sunIntensity": 2.1,
+        "shadowOpacity": 0.22
+      }
+    }
   }
 }

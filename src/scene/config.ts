@@ -34,4 +34,8 @@ export interface SceneConfig {
   // Houses and hotels stand on it, so they never cover text or the landmark.
   dressing: { textShare: number; maxHeight: number; houseLane: number };
   groupSymbols: Record<string, string>;
+  // Optional looks chosen with ?look= (website match). Each overrides colors and lighting.
+  looks?: Record<string, { colors: Partial<Omit<SceneConfig['colors'], 'palette'>>; lighting: Partial<SceneConfig['lighting']> }>;
+  look?: string;
+  skyline?: boolean;
 }

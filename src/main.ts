@@ -1,5 +1,10 @@
 import '@fontsource/noto-sans-bengali/400.css';
 import '@fontsource/noto-sans-bengali/700.css';
+import '@fontsource/rozha-one/400.css';
+import '@fontsource/figtree/500.css';
+import '@fontsource/figtree/700.css';
+import '@fontsource/figtree/800.css';
+import '@fontsource/gaegu/700.css';
 import './ui/styles.css';
 import tilesDoc from '../data/tiles.json';
 import config from '../data/config.json';
@@ -33,6 +38,16 @@ async function main(): Promise<void> {
   // Camera preset from the address, for comparing presets on the phone (plan 3.6): ?camera=isometric
   const camera = params.get('camera');
   if (camera && camera in sceneConfig.camera.presets) sceneConfig.camera.active = camera;
+  // Website look (Night Map), preview behind ?look=nightmap until the owner approves it.
+  const look = params.get('look');
+  const over = look ? sceneConfig.looks?.[look] : undefined;
+  if (look && over) {
+    Object.assign(sceneConfig.colors, over.colors);
+    Object.assign(sceneConfig.lighting, over.lighting);
+    sceneConfig.look = look;
+    sceneConfig.skyline = params.get('skyline') === '1';
+    document.documentElement.dataset['look'] = look;
+  }
 
   // Board-only pages for S5: ?showcase=1 (still sample position) and ?bench=1 (busy, with frame rate).
   if (params.get('showcase') === '1' || params.get('bench') === '1') {
